@@ -24,7 +24,7 @@ if (!empty($_POST)) {
                         <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
                     </div>
                     <label for="ia-email-title-text">Header Text</label>
-                    <input type="text" name="ia-email-title-text" id="ia-email-title-text" value="<?php echo ia_email_get('header_text'); ?>"></input>
+                    <input type="text" name="ia-email-title-text" id="ia-email-title-text" value="<?php echo stripslashes(ia_email_get('header_text')); ?>"></input>
                     <label for="ia-email-intro-p">Intro Text</label>
                     <textarea name="ia-email-intro-p" id="ia-email-intro-p" cols="30" rows="3"><?php echo esc_attr(stripslashes(ia_email_get('intro_paragraph'))); ?></textarea>
                     <label for="ia-email-intro-signature">Intro Signature</label>
@@ -67,7 +67,7 @@ if (!empty($_POST)) {
                                         </div>
                                     </div>
                                     <label for="ia-email-event-header">Event Row Header</label>
-                                    <input type="text" name="ia-email-events[][event-header]" value="<?php echo $event->event_header_text; ?>"></input>
+                                    <input type="text" name="ia-email-events[][event-header]" value="<?php echo stripslashes($event->event_header_text); ?>"></input>
                                     <label for="ia-email-event-image">Event Row Image</label>
                                     <?php
                                     $event_imgs = ia_email_get_imgs($event->id);
@@ -89,7 +89,7 @@ if (!empty($_POST)) {
                                         }
                                     } ?>
                                     <label for="ia-email-event-text">Event Row Text</label>
-                                    <textarea name="ia-email-events[][event-text]" rows="5"><?php echo $event->event_text; ?></textarea>
+                                    <textarea name="ia-email-events[][event-text]" rows="5"><?php echo stripslashes($event->event_text); ?></textarea>
                                     <?php
                                     $event_buttons = ia_email_get_buttons($event->id);
                                     if (empty($event_buttons)) { ?>
@@ -111,9 +111,9 @@ if (!empty($_POST)) {
                                             <div class="ia-email-event-button-wrapper">
                                                 <div class="ia-email-event-button-inputs">
                                                     <label for="ia-email-event-button-text">Event Row Button Text</label>
-                                                    <input type="text" name="ia-email-events[][event-button][text][]" value="<?php echo $event_button->event_button_text; ?>"></input>
+                                                    <input type="text" name="ia-email-events[][event-button][text][]" value="<?php echo stripslashes($event_button->event_button_text); ?>"></input>
                                                     <label for="ia-email-event-link">Event Row Button Link</label>
-                                                    <input type="text" name="ia-email-events[][event-button][link][]" value="<?php echo $event_button->event_button_link; ?>"></input>
+                                                    <input type="text" name="ia-email-events[][event-button][link][]" value="<?php echo stripslashes($event_button->event_button_link); ?>"></input>
                                                 </div>
                                                 <div class="ia-email-event-button-controls">
                                                     <button class="ia-email-button-small ia-email-button-add">+</button>
@@ -165,8 +165,8 @@ if (!empty($_POST)) {
                                                         </h1>
                                                         <div style="margin: 0; font-family: Arial,sans-serif; font-size: 18px; line-height: 24px;">
                                                             <!-- This is the newsletter introductory paragraph(s). -->
-                                                            <p><?php echo ia_email_get('intro_paragraph'); ?></p>
-                                                            <p><?php echo ia_email_get('intro_signature'); ?></p>
+                                                            <p><?php echo stripslashes(ia_email_get('intro_paragraph')); ?></p>
+                                                            <p><?php echo stripslashes(ia_email_get('intro_signature')); ?></p>
                                                             <a href='mailto:volunteeradmin@indyambassadors.org'>volunteeradmin@indyambassadors.org</a>
                                                         </div>
                                                     </td>
@@ -212,20 +212,20 @@ if (!empty($_POST)) {
                             <div style="padding: 10px; font-size: 14px; line-height: 18px; text-align: left;">
                                 <p style="margin-top: 0; margin-bottom: 12px; font-family: Arial,sans-serif; font-weight: bold;">
                                     <!-- ---------------     Update the Article Heading ------------------ -->
-                                    <?php echo get_the_title(tribe_get_event($event->tec_event_id)); ?>
+                                    <?php echo stripslashes($event->event_header_text); ?>
                                 </p>
                                 <p style="margin-top: 0; margin-bottom: 14px; font-family: Arial,sans-serif;">
                                     <!-- -------------------- Update the Article Body ----------------------->
-                                    <?php echo $event->event_text; ?>
+                                    <?php echo stripslashes($event->event_text); ?>
                                 </p>
                                 <p style="margin: 0; font-family: Arial,sans-serif;">
                                     <!-- -----------------   Update the Article Action Link ------------------- -->
                                     <?php
                                     $event_buttons = ia_email_get_buttons($event->id);
                                     foreach ($event_buttons as $event_button) { ?>
-                                        <a href="<?php echo $event_button->event_button_link; ?>" style="background: #ffffff; border: 2px solid #8dc1d6; text-decoration: none; padding: 10px 8px; color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise: 10pt; font-weight: bold;">
+                                        <a href="<?php echo stripslashes($event_button->event_button_link); ?>" style="background: #ffffff; border: 2px solid #8dc1d6; text-decoration: none; padding: 10px 8px; color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise: 10pt; font-weight: bold;">
                                                 <!-- -------------   Update the Article Action Prompt -------------------- -->
-                                                <?php echo $event_button->event_button_text; ?>
+                                                <?php echo stripslashes($event_button->event_button_text); ?>
                                             </span><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%">&nbsp;</i><![endif]--></a>
                                     <?php
                                     } ?>
