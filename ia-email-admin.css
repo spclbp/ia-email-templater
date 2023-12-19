@@ -1,0 +1,197 @@
+.wrap {
+    margin-top: 75px;
+}
+
+textarea {
+    resize: none;
+}
+
+.ia-email-admin-header {
+    text-align: center;
+}
+
+.ia-email-admin-inputs {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    gap: 4rem;
+    max-width: calc(100% - 4rem);
+}
+
+.ia-email-admin-outputs {
+    grid-column: 1 / 3;
+}
+
+.ia-email-templater-header {
+    text-align: center;
+}
+
+.ia-email-admin-inputs-left,
+.ia-email-admin-inputs-right {
+    display: flex;
+    flex-direction: column;
+}
+
+.ia-email-events-row {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    transition: all 200ms ease-in-out 0ms;
+    border: 1px solid #8c8f94;
+    border-radius: .25rem;
+    padding: 1rem;
+    margin: 1rem 0;
+    background-color: #ddd;
+}
+
+.ia-email-events-row-hide {
+    grid-template-rows: auto 0fr;
+}
+
+.ia-email-events-row-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.ia-email-events-row-header-text {
+    margin: 0;
+}
+
+.ia-email-events-row-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+}
+
+.ia-email-button-small {
+    background-color: #c91829;
+    color: #fff;
+    border: none;
+    height: fit-content;
+    width: fit-content;
+    border-radius: .25rem;
+    padding: .25rem .5rem;
+}
+
+.ia-email-button-small:hover {
+    cursor: pointer;
+    opacity: .8;
+}
+
+.ia-email-header-image-wrapper {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    align-items: center;
+}
+
+.ia-email-header-image {
+    max-height: 200px;
+    max-width: 100%;
+    object-fit: cover;
+}
+
+.ia-email-events-get-tec {
+    margin-top: .5rem;
+}
+
+.ia-email-tec-dropdown {
+    min-width: 200px;
+    max-width: 100% !important;
+}
+
+.ia-email-events-row-props {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.ia-email-events-row-content {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    overflow: hidden;
+}
+
+.ia-email-event-image-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+}
+
+.ia-email-event-image-preview {
+    max-height: 200px;
+    max-width: 100%;
+    object-fit: cover;
+}
+
+.ia-email-bottom-buttons {
+    display: flex;
+    justify-content: space-evenly;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: calc(100% - 180px);
+    background: #ddd;
+    padding: 2.5rem 0 .5rem 180px;
+    border-bottom: 1px solid #8c8f94;
+}
+
+.ia-email-event-button-wrapper {
+    display: grid;
+    grid-template-columns: 90% 10%;
+    align-items: center;
+}
+
+.ia-email-event-button-inputs {
+    display: flex;
+    flex-direction: column;
+}
+
+.ia-email-event-button-controls {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.ia-email-button {
+    background-color: #c91829;
+    color: #fff;
+    border: none;
+    padding: 1rem 2rem;
+    height: fit-content;
+    width: fit-content;
+    border-radius: .25rem;
+    margin: 0 auto;
+}
+
+.ia-email-button:hover {
+    cursor: pointer;
+    opacity: .8;
+}
+
+.ia-email-admin-inputs-left-text,
+.ia-email-admin-inputs-right-syles {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.ia-email-admin-outputs-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.ia-email-templater-header {
+    text-align: center;
+}
+
+.ia-email-admin-outputs-header .ia-email-button-small {
+    margin: 0;
+}
+
+#the-code {
+    display: none;
+}
+
+.green-pulse {
+    transition: background-color 1s ease-in-out;
+    background-color: darkolivegreen;
+}
