@@ -37,10 +37,13 @@ if (!empty($_POST)) {
                             <div class="ia-email-events-row">
                                 <div class="ia-email-events-row-header">
                                     <h3 class="ia-email-events-row-header-text">Event Row</h3>
+                                    <p class="ia-email-events-row-header-label"><?php echo esc_html(stripslashes($event->event_header_text)); ?></p>
                                     <div class="ia-email-events-row-buttons">
-                                        <button class="ia-email-button-small ia-email-minimize">_</button>
-                                        <button class="ia-email-button-small ia-email-maximize">+</button>
-                                        <button class="ia-email-button-small ia-email-remove">x</button>
+                                        <button class="ia-email-button-small ia-email-move-down"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-down-solid.svg'; ?>" alt="Move Down" title="Move Down"></button>
+                                        <button class="ia-email-button-small ia-email-move-up"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-up-solid.svg'; ?>" alt="Move Up" title="Move Up"></button>
+                                        <button class="ia-email-button-small ia-email-minimize"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/window-minimize-solid.svg'; ?>" alt="Minimize" title="Minimize"></button>
+                                        <button class="ia-email-button-small ia-email-maximize"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/plus-solid.svg'; ?>" alt="Maximize" title="Maximize"></button>
+                                        <button class="ia-email-button-small ia-email-remove"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/trash-solid.svg'; ?>" alt="Remove" title="Remove"></button>
                                     </div>
                                 </div>
                                 <div class="ia-email-events-row-content">
@@ -116,8 +119,8 @@ if (!empty($_POST)) {
                                                     <input type="text" name="ia-email-events[][event-button][link][]" value="<?php echo stripslashes($event_button->event_button_link); ?>"></input>
                                                 </div>
                                                 <div class="ia-email-event-button-controls">
-                                                    <button class="ia-email-button-small ia-email-button-add">+</button>
-                                                    <button class="ia-email-button-small ia-email-button-remove">-</button>
+                                                    <button class="ia-email-button-small ia-email-button-add"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/plus-solid.svg'; ?>" alt="Add Button Row" title="Add Button Row"></button>
+                                                    <button class="ia-email-button-small ia-email-button-remove"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/trash-solid.svg'; ?>" alt="Remove Button Row" title="Remove Button Row"></button>
                                                 </div>
                                             </div>
                                     <?php

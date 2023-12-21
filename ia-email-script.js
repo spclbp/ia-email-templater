@@ -15,18 +15,18 @@ addEventListener('DOMContentLoaded', () => {
 
             let filteredData = data.events.filter((value, index, self) => {
                 return self.findIndex(event => event.title === value.title) === index;
-              })
-
-            console.log(filteredData)
+            })
 
             initDropdowns = document.querySelectorAll('.ia-email-tec-dropdown')
 
             for (let dropdown of initDropdowns) {
-                for (let event of filteredData) {
-                    let option = document.createElement('option')
-                    option.textContent = event.title.toString().replace(/(<([^>]+)>)/ig, '').replace('#038;', '')
-                    option.value = event.id
-                    dropdown.append(option)
+                if (dropdown.options.length <= 2) {
+                    for (let event of filteredData) {
+                        let option = document.createElement('option')
+                        option.textContent = event.title.toString().replace(/(<([^>]+)>)/ig, '').replace('#038;', '')
+                        option.value = event.id
+                        dropdown.append(option)
+                    }
                 }
             }
         })
@@ -34,6 +34,7 @@ addEventListener('DOMContentLoaded', () => {
 
     function populateRow(el, id) {
         let elParent = el.parentElement.parentElement
+        let rowLabel = el.parentElement.parentElement.previousElementSibling.querySelector('.ia-email-events-row-header-label')
         let elHeader = elParent.querySelector('[name="ia-email-events[][event-header]"]')
         let elImage = elParent.querySelector('.ia-email-event-image-wrapper')
         let elText = elParent.querySelector('[name="ia-email-events[][event-text]"]')
@@ -41,6 +42,7 @@ addEventListener('DOMContentLoaded', () => {
         let elLink = elParent.querySelector('[name="ia-email-events[][event-button][link][]"]')
         if (id != 'none') {
             fetch(`https://www.indyambassadors.org/wp-json/tribe/events/v1/events/${id}`).then(res => res.json()).then(data => {
+                rowLabel.textContent = data.title
                 elHeader.value = data.title
                 elImage.querySelector('.ia-email-event-image-preview').src = data.image.url
                 elImage.querySelector('.ia-email-event-image-id').value = data.image.id
@@ -49,6 +51,7 @@ addEventListener('DOMContentLoaded', () => {
                 elLink.value = data.url
             })
         } else {
+            rowLabel.textContent = ''
             elHeader.value = ''
             elImage.querySelector('.ia-email-event-image-preview').src = ''
             elImage.querySelector('.ia-email-event-image-id').value = ''
@@ -68,6 +71,8 @@ addEventListener('DOMContentLoaded', () => {
         let selectMultiImage = document.querySelectorAll('[name="ia-email-events[][event-two-imgs]"]')
         let selectEventButtonAdd = document.querySelectorAll('.ia-email-button-add')
         let selectEventButtonRemove = document.querySelectorAll('.ia-email-button-remove')
+        let selectMoveRowDown = document.querySelectorAll('.ia-email-move-down')
+        let selectMoveRowUp = document.querySelectorAll('.ia-email-move-up')
 
         for (let minButton of selectMinimizeButtons) {
             minButton.addEventListener('click', (e) => {
@@ -131,18 +136,35 @@ addEventListener('DOMContentLoaded', () => {
                 populateRow(e, e.value)
             })
         })
+
+        selectMoveRowDown.forEach((e) => {
+            e.addEventListener('click', (f) => {
+                f.preventDefault()
+
+                moveRowDown(e)
+            })
+        })
+
+        selectMoveRowUp.forEach((e) => {
+            e.addEventListener('click', (f) => {
+                f.preventDefault()
+                moveRowUp(e)
+            })
+        })
     }
 
     function createEvent() {
         const el = document.createElement('div')
         const emailEventsWrapper = document.querySelector('.ia-email-events-wrapper')
-        el.innerHTML = newEventTemplate
+        el.classList.add('ia-email-events-row')
+        el.innerHTML = document.querySelector('.ia-email-events-row').innerHTML
+        emailEventsWrapper.append(el)
         el.querySelector('.ia-email-event-image-preview').src = ''
         el.querySelector('.ia-email-event-image-id').value = ''
-        emailEventsWrapper.append(el)
 
-        let rowContent = el.querySelector('.ia-email-events-row')
         let imageButton = el.querySelector('.ia-email-select-image')
+        let moveRowDownButton = el.querySelector('.ia-email-move-down')
+        let moveRowUpButton = el.querySelector('.ia-email-move-up')
         let minimizeButton = el.querySelector('.ia-email-minimize')
         let maximizeButton = el.querySelector('.ia-email-maximize')
         let removeButton = el.querySelector('.ia-email-remove')
@@ -152,20 +174,38 @@ addEventListener('DOMContentLoaded', () => {
         let eventButtonAdd = el.querySelector('.ia-email-button-add')
         let eventButtonRemove = el.querySelector('.ia-email-button-remove')
         dropdown.value = 'none'
-        populateRow(dropdown, dropdown.value)
         featured.checked = false
         multiImage.checked = false
+
+        if (el.querySelectorAll('.ia-email-event-image-wrapper').length > 1) {
+            el.querySelectorAll('.ia-email-event-image-wrapper')[1].remove()
+        }
+
+        if (el.querySelectorAll('.ia-email-event-button-wrapper').length > 1) {
+            el.querySelectorAll('.ia-email-event-button-wrapper')[1].remove()
+        }
+
+        populateRow(dropdown, dropdown.value)
         initSelectImage(imageButton)
 
+        moveRowDownButton.addEventListener('click', (e) => {
+            e.preventDefault()
+            moveRowDown(moveRowDownButton)
+        })
+
+        moveRowUpButton.addEventListener('click', (e) => {
+            e.preventDefault()
+            moveRowUp(moveRowUpButton)
+        })
 
         minimizeButton.addEventListener('click', (e) => {
             e.preventDefault()
-            rowContent.classList.add('ia-email-events-row-hide')
+            el.classList.add('ia-email-events-row-hide')
         })
 
         maximizeButton.addEventListener('click', (e) => {
             e.preventDefault()
-            rowContent.classList.remove('ia-email-events-row-hide')
+            el.classList.remove('ia-email-events-row-hide')
         })
 
         removeButton.addEventListener('click', (e) => {
@@ -236,7 +276,11 @@ addEventListener('DOMContentLoaded', () => {
     function createEventButtons(el) {
         let elParent = el.parentElement.parentElement
         let newBtnRow = document.createElement('div')
-        newBtnRow.innerHTML = eventButtonTemplate
+        newBtnRow.classList.add('ia-email-event-button-wrapper')
+        newBtnRow.innerHTML = document.querySelector('.ia-email-event-button-wrapper').innerHTML
+        newBtnRow.querySelectorAll('input').forEach((e) => {
+            e.value = ''
+        })
         elParent.after(newBtnRow)
         let newAddBtn = newBtnRow.querySelector('.ia-email-button-add')
         let newRemBtn = newBtnRow.querySelector('.ia-email-button-remove')
@@ -248,6 +292,24 @@ addEventListener('DOMContentLoaded', () => {
             e.preventDefault()
             newBtnRow.remove()
         })
+    }
+
+    function moveRowDown(el) {
+        let eventRows = [...document.querySelectorAll('.ia-email-events-row')]
+        let moveDownBtns = [...document.querySelectorAll('.ia-email-move-down')]
+        let rowIndex = moveDownBtns.indexOf(el)
+        if (rowIndex < eventRows.length - 1) {
+            eventRows[rowIndex + 1].after(eventRows[rowIndex])
+        }
+    }
+
+    function moveRowUp(el) {
+        let eventRows = [...document.querySelectorAll('.ia-email-events-row')]
+        let moveDownBtns = [...document.querySelectorAll('.ia-email-move-up')]
+        let rowIndex = moveDownBtns.indexOf(el)
+        if (rowIndex > 0) {
+            eventRows[rowIndex - 1].before(eventRows[rowIndex])
+        }
     }
 
     document.querySelector('#copy-code').addEventListener('click', (e) => {
@@ -267,72 +329,4 @@ addEventListener('DOMContentLoaded', () => {
             theCodeEl.style.display = ''
         }
     })
-
-    const newEventTemplate = `
-                    <div class="ia-email-events-row">
-                    <div class="ia-email-events-row-header">
-                        <h3 class="ia-email-events-row-header-text">Event Row</h3>
-                        <div class="ia-email-events-row-buttons">
-                            <button class="ia-email-button-small ia-email-minimize">_</button>
-                            <button class="ia-email-button-small ia-email-maximize">+</button>
-                            <button class="ia-email-button-small ia-email-remove">x</button>
-                        </div>
-                    </div>
-                    <div class="ia-email-events-row-content">
-                        <div class="ia-email-events-get-tec">
-                            <label for="ia-email-tec-dropdown">TEC Event</label>
-                            <select class="ia-email-tec-dropdown" name="ia-email-events[][tec-dropdown]">
-                                <option value="none">None</option>
-                                    <option value="none" selected></option>
-                            </select>
-                        </div>
-                        <div class="ia-email-events-row-props">
-                            <div class="ia-email-events-featured">
-                                <label for="ia-email-event-featured">Featured</label>
-                                <input type="checkbox" name="ia-email-events[][event-featured]"></input>
-                            </div>
-                            <div class="ia-email-events-two-imgs">
-                                <label for="ia-email-event-two-imgs">Two Images</label>
-                                <input type="checkbox" name="ia-email-events[][event-two-imgs]"></input>
-                            </div>
-                        </div>
-                        <label for="ia-email-event-header">Event Row Header</label>
-                        <input type="text" name="ia-email-events[][event-header]" value=""></input>
-                        <label for="ia-email-event-image">Event Row Image</label>
-                            <div class="ia-email-event-image-wrapper">
-                                <img src="" alt="Event Image Preview" class="ia-email-event-image-preview">
-                                <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="">
-                                <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
-                            </div>
-                        <label for="ia-email-event-text">Event Row Text</label>
-                        <textarea name="ia-email-events[][event-text]" rows="5"></textarea>
-                        <div class="ia-email-event-button-wrapper">
-                            <div class="ia-email-event-button-inputs">
-                                <label for="ia-email-event-button-text">Event Row Button Text</label>
-                                <input type="text" name="ia-email-events[][event-button][text][]" value=""></input>
-                                <label for="ia-email-event-link">Event Row Button Link</label>
-                                <input type="text" name="ia-email-events[][event-button][link][]" value=""></input>
-                            </div>
-                            <div class="ia-email-event-button-controls">
-                                <button class="ia-email-button-small ia-email-button-add">+</button>
-                                <button class="ia-email-button-small ia-email-button-remove">-</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                `
-    const eventButtonTemplate = `
-                        <div class="ia-email-event-button-wrapper">
-                            <div class="ia-email-event-button-inputs">
-                                <label for="ia-email-event-button-text">Event Row Button Text</label>
-                                <input type="text" name="ia-email-events[][event-button][text][]" value=""></input>
-                                <label for="ia-email-event-link">Event Row Button Link</label>
-                                <input type="text" name="ia-email-events[][event-button][link][]" value=""></input>
-                            </div>
-                            <div class="ia-email-event-button-controls">
-                                <button class="ia-email-button-small ia-email-button-add">+</button>
-                                <button class="ia-email-button-small ia-email-button-remove">-</button>
-                            </div>
-                        </div>
-                        `
 })
