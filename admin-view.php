@@ -26,7 +26,17 @@ if (!empty($_POST)) {
                     <label for="ia-email-title-text">Header Text</label>
                     <input type="text" name="ia-email-title-text" id="ia-email-title-text" value="<?php echo stripslashes(ia_email_get('header_text')); ?>"></input>
                     <label for="ia-email-intro-p">Intro Text</label>
-                    <textarea name="ia-email-intro-p" id="ia-email-intro-p" cols="30" rows="3"><?php echo esc_attr(stripslashes(ia_email_get('intro_paragraph'))); ?></textarea>
+                    <?php
+                    wp_editor(
+                        stripslashes(ia_email_get('intro_paragraph')),
+                        'ia-email-intro-p',
+                        array(
+                            'media_buttons' => false,
+                            'textarea_rows' => '10',
+                            'textarea_name' => 'ia-email-intro-p'
+                        )
+                    );
+                    ?>
                     <label for="ia-email-intro-signature">Intro Signature</label>
                     <input type="text" name="ia-email-intro-signature" id="ia-email-intro-signature" value="<?php echo ia_email_get('intro_signature'); ?>"></input>
                     <div class="ia-email-events-wrapper">
@@ -133,7 +143,17 @@ if (!empty($_POST)) {
                     <label for="ia-email-footer-signup">Footer Sign-Up Text</label>
                     <input type="text" name="ia-email-footer-signup" id="ia-email-footer-signup" value="<?php echo esc_attr(stripslashes(ia_email_get('footer_signup'))); ?>"></input>
                     <label for="ia-email-footer-socials">Footer Social Links</label>
-                    <textarea name="ia-email-footer-socials" id="ia-email-footer-socials" cols="30" rows="3"><?php echo esc_attr(stripslashes(ia_email_get('footer_socials'))); ?></textarea>
+                    <?php
+                    wp_editor(
+                        stripslashes(ia_email_get('footer_socials')),
+                        'ia-email-footer-socials',
+                        array(
+                            'media_buttons' => false,
+                            'textarea_rows' => '10',
+                            'textarea_name' => 'ia-email-footer-socials'
+                        )
+                    );
+                    ?>
                     <div class="ia-email-bottom-buttons">
                         <button id="add-event" class="ia-email-button">Add Event</button>
                         <input type="submit" value="Save" id="ia-email-save" class="ia-email-button">
@@ -217,8 +237,8 @@ if (!empty($_POST)) {
                                     <!-- ---------------     Update the Article Heading ------------------ -->
                                     <?php echo stripslashes($event->event_header_text); ?>
                                 </p>
+                                <!-- -------------------- Update the Article Body ----------------------->
                                 <p style="margin-top: 0; margin-bottom: 14px; font-family: Arial,sans-serif;">
-                                    <!-- -------------------- Update the Article Body ----------------------->
                                     <?php echo stripslashes($event->event_text); ?>
                                 </p>
                                 <p style="margin: 0; font-family: Arial,sans-serif;">
