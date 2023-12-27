@@ -36,16 +36,25 @@ addEventListener('DOMContentLoaded', () => {
         let elParent = el.parentElement.parentElement
         let rowLabel = el.parentElement.parentElement.previousElementSibling.querySelector('.ia-email-events-row-header-label')
         let elHeader = elParent.querySelector('[name="ia-email-events[][event-header]"]')
-        let elImage = elParent.querySelector('.ia-email-event-image-wrapper')
+        let elImages = elParent.querySelectorAll('.ia-email-event-image-wrapper')
         let elText = elParent.querySelector('[name="ia-email-events[][event-text]"]')
         let elButtonText = elParent.querySelector('[name="ia-email-events[][event-button][text][]"]')
         let elLink = elParent.querySelector('[name="ia-email-events[][event-button][link][]"]')
+        let elTwoImages = elParent.querySelector('[name="ia-email-events[][event-two-imgs]"]')
+        let elButtonRows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
         if (id != 'none') {
             fetch(`https://www.indyambassadors.org/wp-json/tribe/events/v1/events/${id}`).then(res => res.json()).then(data => {
                 rowLabel.textContent = data.title
                 elHeader.value = data.title
-                elImage.querySelector('.ia-email-event-image-preview').src = data.image.url
-                elImage.querySelector('.ia-email-event-image-id').value = data.image.id
+                if (elImages.length > 1) {
+                    elImages[0].querySelector('.ia-email-event-image-preview').src = data.image.url
+                    elImages[0].querySelector('.ia-email-event-image-id').value = data.image.id
+                    elImages[1].remove()
+                } else {
+                    elImages[0].querySelector('.ia-email-event-image-preview').src = data.image.url
+                    elImages[0].querySelector('.ia-email-event-image-id').value = data.image.id
+                }
+                elTwoImages.checked = false
                 elText.value = data.description
                 elButtonText.value = 'Volunteer'
                 elLink.value = data.url
@@ -53,11 +62,21 @@ addEventListener('DOMContentLoaded', () => {
         } else {
             rowLabel.textContent = ''
             elHeader.value = ''
-            elImage.querySelector('.ia-email-event-image-preview').src = ''
-            elImage.querySelector('.ia-email-event-image-id').value = ''
+            if (elImages.length > 1) {
+                elImages[0].querySelector('.ia-email-event-image-preview').src = ''
+                elImages[0].querySelector('.ia-email-event-image-id').value = ''
+                elImages[1].remove()
+            } else {
+                elImages[0].querySelector('.ia-email-event-image-preview').src = ''
+                elImages[0].querySelector('.ia-email-event-image-id').value = ''
+            }
+            elTwoImages.checked = false
             elText.value = ''
             elButtonText.value = ''
             elLink.value = ''
+            for (let i = elButtonRows.length - 1; i > 0; i--) {
+                elButtonRows[i].remove()
+            }
         }
     }
 

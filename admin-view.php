@@ -184,7 +184,7 @@ if (!empty($_POST)) {
                                                     <td style="padding: 10px; text-align: left;">
                                                         <!-- Newsletter Header -->
                                                         <h1 style="margin-top: 0; margin-bottom: 16px; font-family: Arial,sans-serif; font-size: 26px; line-height: 32px; font-weight: bold;">
-                                                            <?php echo ia_email_get('header_text'); ?>
+                                                            <?php echo stripslashes(ia_email_get('header_text')); ?>
                                                         </h1>
                                                         <div style="margin: 0; font-family: Arial,sans-serif; font-size: 18px; line-height: 24px;">
                                                             <!-- This is the newsletter introductory paragraph(s). -->
