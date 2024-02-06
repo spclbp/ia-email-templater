@@ -88,6 +88,8 @@ addEventListener('DOMContentLoaded', () => {
         let selectRemoveButtons = document.querySelectorAll('.ia-email-remove')
         let selectDropdowns = document.querySelectorAll('.ia-email-tec-dropdown')
         let selectMultiImage = document.querySelectorAll('[name="ia-email-events[][event-two-imgs]"]')
+        let selectDivider = document.querySelectorAll('[name="ia-email-events[][event-divider]"]')
+        let selectMute = document.querySelectorAll('[name="ia-email-events[][event-mute]"]')
         let selectEventButtonAdd = document.querySelectorAll('.ia-email-button-add')
         let selectEventButtonRemove = document.querySelectorAll('.ia-email-button-remove')
         let selectMoveRowDown = document.querySelectorAll('.ia-email-move-down')
@@ -127,6 +129,20 @@ addEventListener('DOMContentLoaded', () => {
                 } else {
                     imgWrap.nextElementSibling.remove()
                 }
+            })
+        }
+
+        for (let divider of selectDivider) {
+            handleDivider(divider)
+            divider.addEventListener('click', () => {
+                handleDivider(divider)
+            })
+        }
+
+        for (let mute of selectMute) {
+            handleMute(mute)
+            mute.addEventListener('click', () => {
+                handleMute(mute)
             })
         }
 
@@ -190,6 +206,8 @@ addEventListener('DOMContentLoaded', () => {
         let dropdown = el.querySelector('.ia-email-tec-dropdown')
         let featured = el.querySelector('[name="ia-email-events[][event-featured]"]')
         let multiImage = el.querySelector('[name="ia-email-events[][event-two-imgs]"]')
+        let divider = el.querySelector('[name="ia-email-events[][event-divider]"]')
+        let mute = el.querySelector('[name="ia-email-events[][event-mute]"]')
         let eventButtonAdd = el.querySelector('.ia-email-button-add')
         let eventButtonRemove = el.querySelector('.ia-email-button-remove')
         dropdown.value = 'none'
@@ -242,6 +260,15 @@ addEventListener('DOMContentLoaded', () => {
                 imgWrap.nextElementSibling.remove()
             }
         })
+
+        divider.addEventListener('click', () => {
+            handleDivider(divider)
+        })
+
+        mute.addEventListener('click', () => {
+            handleMute(mute)
+        })
+
 
         eventButtonAdd.addEventListener('click', (e) => {
             e.preventDefault()
@@ -328,6 +355,35 @@ addEventListener('DOMContentLoaded', () => {
         let rowIndex = moveDownBtns.indexOf(el)
         if (rowIndex > 0) {
             eventRows[rowIndex - 1].before(eventRows[rowIndex])
+        }
+    }
+
+    function handleDivider(el) {
+        const parentEl = el.parentElement.parentElement.parentElement.parentElement
+        if (el.checked) {
+            parentEl.querySelector('.ia-email-events-row-header-label').textContent = 'Divider'
+            parentEl.querySelector('.ia-email-events-get-tec').style.display = 'none'
+            parentEl.querySelector('.ia-email-tec-dropdown').value = 'none'
+            parentEl.querySelector('[for="ia-email-event-image"]').style.display = 'none'
+            parentEl.querySelector('.ia-email-event-image-wrapper').style.display = 'none'
+            parentEl.querySelector('.ia-email-event-image-preview').src = ''
+            parentEl.querySelector('.ia-email-event-button-wrapper').style.display = 'none'
+            parentEl.querySelector('[name="ia-email-events[][event-button][text][]"]').value = ''
+            parentEl.querySelector('[name="ia-email-events[][event-button][link][]"]').value = ''
+        } else {
+            parentEl.querySelector('.ia-email-events-get-tec').style.display = ''
+            parentEl.querySelector('[for="ia-email-event-image"]').style.display = ''
+            parentEl.querySelector('.ia-email-event-image-wrapper').style.display = ''
+            parentEl.querySelector('.ia-email-event-button-wrapper').style.display = ''
+        }
+    }
+
+    function handleMute(el) {
+        const parentEl = el.parentElement.parentElement.parentElement.parentElement
+        if (el.checked) {
+            parentEl.style.opacity = '.6'
+        } else {
+            parentEl.style.opacity = '1'
         }
     }
 

@@ -42,7 +42,7 @@ if (!empty($_POST)) {
                     <div class="ia-email-events-wrapper">
                         <?php
                         $events = ia_email_get('events');
-                        foreach ($events as $event) {
+                        foreach ($events as $key => $event) {
                         ?>
                             <div class="ia-email-events-row">
                                 <div class="ia-email-events-row-header">
@@ -68,16 +68,26 @@ if (!empty($_POST)) {
                                         </select>
                                     </div>
                                     <div class="ia-email-events-row-props">
-                                        <div class="ia-email-events-featured">
-                                            <label for="ia-email-event-featured">Featured</label>
-                                            <input type="checkbox" name="ia-email-events[][event-featured]" <?php
-                                                                                                            if ($event->event_featured == 'on') { ?> checked <?php } ?>></input>
-                                        </div>
-                                        <div class="ia-email-events-two-imgs">
-                                            <label for="ia-email-event-two-imgs">Two Images</label>
-                                            <input type="checkbox" name="ia-email-events[][event-two-imgs]" <?php
-                                                                                                            if ($event->event_two_imgs == 'on') { ?> checked <?php } ?>></input>
-                                        </div>
+                                        <label class="ia-email-events-prop">
+                                            Featured
+                                            <input type="checkbox" name="ia-email-events[][event-featured]" <?php if ($event->event_featured == 'on') { ?> checked <?php } ?>></input>
+                                            <span class="slider"></span>
+                                        </label>
+                                        <label class="ia-email-events-prop">
+                                            Two Images
+                                            <input type="checkbox" name="ia-email-events[][event-two-imgs]" <?php if ($event->event_two_imgs == 'on') { ?> checked <?php } ?>></input>
+                                            <span class="slider"></span>
+                                        </label>
+                                        <label class="ia-email-events-prop">
+                                            Divider
+                                            <input type="checkbox" name="ia-email-events[][event-divider]" <?php if ($event->event_divider == 'on') { ?> checked <?php } ?>></input>
+                                            <span class="slider"></span>
+                                        </label>
+                                        <label class="ia-email-events-prop">
+                                            Mute
+                                            <input type="checkbox" name="ia-email-events[][event-mute]" <?php if ($event->event_mute == 'on') { ?> checked <?php } ?>></input>
+                                            <span class="slider"></span>
+                                        </label>
                                     </div>
                                     <label for="ia-email-event-header">Event Row Header</label>
                                     <input type="text" name="ia-email-events[][event-header]" value="<?php echo stripslashes($event->event_header_text); ?>"></input>
@@ -102,7 +112,18 @@ if (!empty($_POST)) {
                                         }
                                     } ?>
                                     <label for="ia-email-event-text">Event Row Text</label>
-                                    <textarea name="ia-email-events[][event-text]" rows="5"><?php echo stripslashes($event->event_text); ?></textarea>
+                                    <!-- <textarea name="ia-email-events[][event-text]" rows="5"><?php echo stripslashes($event->event_text); ?></textarea> -->
+                                    <?php
+                                    wp_editor(
+                                        stripslashes($event->event_text),
+                                        'ia-email-event-text-' . $key,
+                                        array(
+                                            'media_buttons' => false,
+                                            'textarea_rows' => '6',
+                                            'textarea_name' => 'ia-email-events[][event-text]'
+                                        )
+                                    );
+                                    ?>
                                     <?php
                                     $event_buttons = ia_email_get_buttons($event->id);
                                     if (empty($event_buttons)) { ?>
@@ -155,7 +176,7 @@ if (!empty($_POST)) {
                     );
                     ?>
                     <div class="ia-email-bottom-buttons">
-                        <button id="add-event" class="ia-email-button">Add Event</button>
+                        <button id="add-event" class="ia-email-button">Add Row</button>
                         <input type="submit" value="Save" id="ia-email-save" class="ia-email-button">
                         <button id="copy-code" class="ia-email-button">Copy Code to Clipboard</button>
                     </div>
@@ -211,53 +232,66 @@ if (!empty($_POST)) {
                 </div>
 
                 <?php
-                foreach ($events as $event) { ?>
-                    <!--   TEMPLATE  Multiple events, single picture   -->
-                    <div class="two-col" style="text-align: center; font-size: 0;background-color: <?php if ($event->event_featured == 'on') { ?> lightyellow; <?php } else { ?> transparent; <?php } ?>"><!-- change to zero/> --> <!--[if mso]>  <table role="presentation" width="100%">  <tr>  <td sstyle="width:50%;padding:10px;" valign="middle">  <![endif]-->
-                        <div class="column" style="width: 100%; max-width: 330px; display: inline-block; vertical-align: middle;">
-                            <div style="padding: 10px;">
-                                <p style="margin: 0; font-family: Arial,sans-serif; font-size: 14px; line-height: 18px;">
-                                    <!-- ---------------    Update the article image link ----------------- -->
-                                    <?php
-                                    $event_imgs = ia_email_get_imgs($event->id);
-                                    if (count($event_imgs) > 1) { ?>
-                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="150" alt="" style="display: inline; width: 150px; max-width: 100%; height: auto; flat: left;" />
-                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="150" alt="" style="display: inline; width: 150px; max-width: 100%; height: auto; float: right;" />
-                                    <?php
-                                    } else { ?>
-                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="310" alt="" style="display: block; width: 310px; max-width: 100%; height: auto;" />
-                                    <?php
-                                    } ?>
-                                </p>
+                foreach ($events as $event) {
+                    if ($event->event_mute !== 'on') {
+                        if ($event->event_divider == 'on') { ?>
+                            <div style="text-align: center; line-height: 1; margin-bottom: 4px;">
+                                <span style="font-size: 36px; font-weight: bold;"><?php echo stripslashes($event->event_header_text); ?></span><br />
                             </div>
-                        </div><!-- [if mso]>  </td>  <td style="width:50%;padding:10px;" valign="middle">  <![endif]-->
-                        <div class="column" style="width: 100%; max-width: 330px; display: inline-block; vertical-align: middle;">
-                            <div style="padding: 10px; font-size: 14px; line-height: 18px; text-align: left;">
-                                <p style="margin-top: 0; margin-bottom: 12px; font-family: Arial,sans-serif; font-weight: bold;">
-                                    <!-- ---------------     Update the Article Heading ------------------ -->
-                                    <?php echo stripslashes($event->event_header_text); ?>
-                                </p>
-                                <!-- -------------------- Update the Article Body ----------------------->
-                                <p style="margin-top: 0; margin-bottom: 14px; font-family: Arial,sans-serif;">
-                                    <?php echo stripslashes($event->event_text); ?>
-                                </p>
-                                <p style="margin: 0; font-family: Arial,sans-serif;">
-                                    <!-- -----------------   Update the Article Action Link ------------------- -->
-                                    <?php
-                                    $event_buttons = ia_email_get_buttons($event->id);
-                                    foreach ($event_buttons as $event_button) { ?>
-                                        <a href="<?php echo stripslashes($event_button->event_button_link); ?>" style="background: #ffffff; border: 2px solid #8dc1d6; text-decoration: none; padding: 10px 8px; color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise: 10pt; font-weight: bold;">
-                                                <!-- -------------   Update the Article Action Prompt -------------------- -->
-                                                <?php echo stripslashes($event_button->event_button_text); ?>
-                                            </span><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%">&nbsp;</i><![endif]--></a>
-                                    <?php
-                                    } ?>
-                                </p>
+                            <div style="text-align: center; font-size: 14px; line-height: 1;">
+                                <?php echo stripslashes($event->event_text); ?>
                             </div>
-                        </div><!-- [if mso]>  </td>  </tr>  </table>  <![endif]-->
-                    </div>
-                    <div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"> </div>
+                        <?php
+                        } else {
+                        ?>
+                            <!--   TEMPLATE  Multiple events, single picture   -->
+                            <div class="two-col" style="text-align: center; font-size: 0;background-color: <?php if ($event->event_featured == 'on') { ?> lightyellow; <?php } else { ?> transparent; <?php } ?>"><!-- change to zero/> --> <!--[if mso]>  <table role="presentation" width="100%">  <tr>  <td sstyle="width:50%;padding:10px;" valign="middle">  <![endif]-->
+                                <div class="column" style="width: 100%; max-width: 330px; display: inline-block; vertical-align: middle;">
+                                    <div style="padding: 10px;">
+                                        <p style="margin: 0; font-family: Arial,sans-serif; font-size: 14px; line-height: 18px;">
+                                            <!-- ---------------    Update the article image link ----------------- -->
+                                            <?php
+                                            $event_imgs = ia_email_get_imgs($event->id);
+                                            if (count($event_imgs) > 1) { ?>
+                                                <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="150" alt="" style="display: inline; width: 150px; max-width: 100%; height: auto; flat: left;" />
+                                                <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="150" alt="" style="display: inline; width: 150px; max-width: 100%; height: auto; float: right;" />
+                                            <?php
+                                            } else { ?>
+                                                <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="310" alt="" style="display: block; width: 310px; max-width: 100%; height: auto;" />
+                                            <?php
+                                            } ?>
+                                        </p>
+                                    </div>
+                                </div><!-- [if mso]>  </td>  <td style="width:50%;padding:10px;" valign="middle">  <![endif]-->
+                                <div class="column" style="width: 100%; max-width: 330px; display: inline-block; vertical-align: middle;">
+                                    <div style="padding: 10px; font-size: 14px; line-height: 18px; text-align: left;">
+                                        <p style="margin-top: 0; margin-bottom: 12px; font-family: Arial,sans-serif; font-weight: bold;">
+                                            <!-- ---------------     Update the Article Heading ------------------ -->
+                                            <?php echo stripslashes($event->event_header_text); ?>
+                                        </p>
+                                        <!-- -------------------- Update the Article Body ----------------------->
+                                        <p style="margin-top: 0; margin-bottom: 14px; font-family: Arial,sans-serif;">
+                                            <?php echo stripslashes($event->event_text); ?>
+                                        </p>
+                                        <p style="margin: 0; font-family: Arial,sans-serif;">
+                                            <!-- -----------------   Update the Article Action Link ------------------- -->
+                                            <?php
+                                            $event_buttons = ia_email_get_buttons($event->id);
+                                            foreach ($event_buttons as $event_button) { ?>
+                                                <a href="<?php echo stripslashes($event_button->event_button_link); ?>" style="background: #ffffff; border: 2px solid #8dc1d6; text-decoration: none; padding: 10px 8px; color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise: 10pt; font-weight: bold;">
+                                                        <!-- -------------   Update the Article Action Prompt -------------------- -->
+                                                        <?php echo stripslashes($event_button->event_button_text); ?>
+                                                    </span><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%">&nbsp;</i><![endif]--></a>
+                                            <?php
+                                            } ?>
+                                        </p>
+                                    </div>
+                                </div><!-- [if mso]>  </td>  </tr>  </table>  <![endif]-->
+                            </div>
+                            <div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"> </div>
                 <?php
+                        }
+                    }
                 } ?>
 
                 <div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"> </div>

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Indy Ambassadors Email Templater
 Description: A custom plugin for generating the weekly newsletter by Indy Ambassadors. Requires The Events Calendar Plugin.
-Version: 1.5
+Version: 1.6
 Requires at least: 6.0
 Requires PHP: 5.6
 Author: Josh Klein
@@ -59,6 +59,8 @@ function ia_email_install()
             tec_event_id int NOT NULL,
             event_featured varchar(4) DEFAULT 'off' NOT NULL,
             event_two_imgs varchar(4) DEFAULT 'off' NOT NULL,
+            event_divider varchar(4) DEFAULT 'off' NOT NULL,
+            event_mute varchar(4) DEFAULT 'off' NOT NULL,
             event_header_text varchar(256) DEFAULT '' NOT NULL,
             event_text longtext DEFAULT '' NOT NULL,
             PRIMARY KEY  (id),
@@ -117,6 +119,8 @@ function ia_email_install_data()
             'tec_event_id' => '',
             'event_featured' => 'off',
             'event_two_imgs' => 'off',
+            'event_divider' => 'off',
+            'event_mute' => 'off',
             'event_header_text' => 'Initial Header',
             'event_text' => 'Initial event text.'
         )
@@ -184,6 +188,12 @@ function ia_email_post($post)
         if (!array_key_exists('event-two-imgs', $events[$i])) {
             $events[$i]['event-two-imgs'] = 'off';
         }
+        if (!array_key_exists('event-divider', $events[$i])) {
+            $events[$i]['event-divider'] = 'off';
+        }
+        if (!array_key_exists('event-mute', $events[$i])) {
+            $events[$i]['event-mute'] = 'off';
+        }
     }
     $the_events = $events;
 
@@ -209,6 +219,8 @@ function ia_email_post($post)
                     'tec_event_id' => $event['tec-dropdown'],
                     'event_featured' => $event['event-featured'],
                     'event_two_imgs' => $event['event-two-imgs'],
+                    'event_divider' => $event['event-divider'],
+                    'event_mute' => $event['event-mute'],
                     'event_header_text' => $event['event-header'],
                     'event_text' => $event['event-text']
                 )
