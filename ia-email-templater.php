@@ -2,7 +2,7 @@
 /*
 Plugin Name: Indy Ambassadors Email Templater
 Description: A custom plugin for generating the weekly newsletter by Indy Ambassadors. Requires The Events Calendar Plugin.
-Version: 1.6
+Version: 1.7
 Requires at least: 6.0
 Requires PHP: 5.6
 Author: Josh Klein
@@ -57,6 +57,7 @@ function ia_email_install()
             id int NOT NULL AUTO_INCREMENT,
             email_id int NOT NULL,
             tec_event_id int NOT NULL,
+            event_minimized varchar(4) DEFAULT 'no' NOT NULL,
             event_featured varchar(4) DEFAULT 'off' NOT NULL,
             event_two_imgs varchar(4) DEFAULT 'off' NOT NULL,
             event_divider varchar(4) DEFAULT 'off' NOT NULL,
@@ -117,6 +118,7 @@ function ia_email_install_data()
         array(
             'email_id' => $last_id,
             'tec_event_id' => '',
+            'event_minimized' => 'no',
             'event_featured' => 'off',
             'event_two_imgs' => 'off',
             'event_divider' => 'off',
@@ -217,6 +219,7 @@ function ia_email_post($post)
                 array(
                     'email_id' => $last_id,
                     'tec_event_id' => $event['tec-dropdown'],
+                    'event_minimized' => $event['event-minimized'],
                     'event_featured' => $event['event-featured'],
                     'event_two_imgs' => $event['event-two-imgs'],
                     'event_divider' => $event['event-divider'],

@@ -43,122 +43,127 @@ if (!empty($_POST)) {
                         <?php
                         $events = ia_email_get('events');
                         foreach ($events as $key => $event) {
-                        ?>
-                            <div class="ia-email-events-row">
-                                <div class="ia-email-events-row-header">
-                                    <h3 class="ia-email-events-row-header-text">Event Row</h3>
-                                    <p class="ia-email-events-row-header-label"><?php echo esc_html(stripslashes($event->event_header_text)); ?></p>
-                                    <div class="ia-email-events-row-buttons">
-                                        <button class="ia-email-button-small ia-email-move-down"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-down-solid.svg'; ?>" alt="Move Down" title="Move Down"></button>
-                                        <button class="ia-email-button-small ia-email-move-up"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-up-solid.svg'; ?>" alt="Move Up" title="Move Up"></button>
-                                        <button class="ia-email-button-small ia-email-minimize"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/window-minimize-solid.svg'; ?>" alt="Minimize" title="Minimize"></button>
-                                        <button class="ia-email-button-small ia-email-maximize"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/plus-solid.svg'; ?>" alt="Maximize" title="Maximize"></button>
-                                        <button class="ia-email-button-small ia-email-remove"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/trash-solid.svg'; ?>" alt="Remove" title="Remove"></button>
-                                    </div>
-                                </div>
-                                <div class="ia-email-events-row-content">
-                                    <div class="ia-email-events-get-tec">
-                                        <label for="ia-email-tec-dropdown">TEC Event</label>
-                                        <select class="ia-email-tec-dropdown" name="ia-email-events[][tec-dropdown]">
-                                            <option value="none">None</option>
-                                            <?php
-                                            if ($event->tec_event_id != '') { ?>
-                                                <option value="<?php echo $event->tec_event_id; ?>" selected>-- <?php echo get_the_title(tribe_get_event($event->tec_event_id)); ?></option>
-                                            <?php } ?>
-                                        </select>
-                                    </div>
-                                    <div class="ia-email-events-row-props">
-                                        <label class="ia-email-events-prop">
-                                            Featured
-                                            <input type="checkbox" name="ia-email-events[][event-featured]" <?php if ($event->event_featured == 'on') { ?> checked <?php } ?>></input>
-                                            <span class="slider"></span>
-                                        </label>
-                                        <label class="ia-email-events-prop">
-                                            Two Images
-                                            <input type="checkbox" name="ia-email-events[][event-two-imgs]" <?php if ($event->event_two_imgs == 'on') { ?> checked <?php } ?>></input>
-                                            <span class="slider"></span>
-                                        </label>
-                                        <label class="ia-email-events-prop">
-                                            Divider
-                                            <input type="checkbox" name="ia-email-events[][event-divider]" <?php if ($event->event_divider == 'on') { ?> checked <?php } ?>></input>
-                                            <span class="slider"></span>
-                                        </label>
-                                        <label class="ia-email-events-prop">
-                                            Mute
-                                            <input type="checkbox" name="ia-email-events[][event-mute]" <?php if ($event->event_mute == 'on') { ?> checked <?php } ?>></input>
-                                            <span class="slider"></span>
-                                        </label>
-                                    </div>
-                                    <label for="ia-email-event-header">Event Row Header</label>
-                                    <input type="text" name="ia-email-events[][event-header]" value="<?php echo stripslashes($event->event_header_text); ?>"></input>
-                                    <label for="ia-email-event-image">Event Row Image</label>
-                                    <?php
-                                    $event_imgs = ia_email_get_imgs($event->id);
-                                    if (empty($event_imgs)) { ?>
-                                        <div class="ia-email-event-image-wrapper">
-                                            <img src="" alt="Event Image Preview" class="ia-email-event-image-preview">
-                                            <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="">
-                                            <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
+                            if ($event->event_minimized == "no") { ?>
+                                <div class="ia-email-events-row">
+                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="no"></input>
+                                    <?php } else { ?>
+                                 <div class="ia-email-events-row ia-email-events-row-hide">
+                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="yes"></input>
+                                <?php } ?>
+                                    <div class="ia-email-events-row-header">
+                                        <h3 class="ia-email-events-row-header-text">Event Row</h3>
+                                        <p class="ia-email-events-row-header-label"><?php echo esc_html(stripslashes($event->event_header_text)); ?></p>
+                                        <div class="ia-email-events-row-buttons">
+                                            <button class="ia-email-button-small ia-email-move-down"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-down-solid.svg'; ?>" alt="Move Down" title="Move Down"></button>
+                                            <button class="ia-email-button-small ia-email-move-up"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-up-solid.svg'; ?>" alt="Move Up" title="Move Up"></button>
+                                            <button class="ia-email-button-small ia-email-minimize"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/window-minimize-solid.svg'; ?>" alt="Minimize" title="Minimize"></button>
+                                            <button class="ia-email-button-small ia-email-maximize"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/plus-solid.svg'; ?>" alt="Maximize" title="Maximize"></button>
+                                            <button class="ia-email-button-small ia-email-remove"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/trash-solid.svg'; ?>" alt="Remove" title="Remove"></button>
                                         </div>
+                                    </div>
+                                    <div class="ia-email-events-row-content">
+                                        <div class="ia-email-events-get-tec">
+                                            <label for="ia-email-tec-dropdown">TEC Event</label>
+                                            <select class="ia-email-tec-dropdown" name="ia-email-events[][tec-dropdown]">
+                                                <option value="none">None</option>
+                                                <?php
+                                                if ($event->tec_event_id != '') { ?>
+                                                    <option value="<?php echo $event->tec_event_id; ?>" selected>-- <?php echo get_the_title(tribe_get_event($event->tec_event_id)); ?></option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+                                        <div class="ia-email-events-row-props">
+                                            <label class="ia-email-events-prop">
+                                                Featured
+                                                <input type="checkbox" name="ia-email-events[][event-featured]" <?php if ($event->event_featured == 'on') { ?> checked <?php } ?>></input>
+                                                <span class="slider"></span>
+                                            </label>
+                                            <label class="ia-email-events-prop">
+                                                Two Images
+                                                <input type="checkbox" name="ia-email-events[][event-two-imgs]" <?php if ($event->event_two_imgs == 'on') { ?> checked <?php } ?>></input>
+                                                <span class="slider"></span>
+                                            </label>
+                                            <label class="ia-email-events-prop">
+                                                Divider
+                                                <input type="checkbox" name="ia-email-events[][event-divider]" <?php if ($event->event_divider == 'on') { ?> checked <?php } ?>></input>
+                                                <span class="slider"></span>
+                                            </label>
+                                            <label class="ia-email-events-prop">
+                                                Mute
+                                                <input type="checkbox" name="ia-email-events[][event-mute]" <?php if ($event->event_mute == 'on') { ?> checked <?php } ?>></input>
+                                                <span class="slider"></span>
+                                            </label>
+                                        </div>
+                                        <label for="ia-email-event-header">Event Row Header</label>
+                                        <input type="text" name="ia-email-events[][event-header]" value="<?php echo stripslashes($event->event_header_text); ?>"></input>
+                                        <label for="ia-email-event-image">Event Row Image</label>
                                         <?php
-                                    } else {
-                                        foreach ($event_imgs as $event_img) { ?>
+                                        $event_imgs = ia_email_get_imgs($event->id);
+                                        if (empty($event_imgs)) { ?>
                                             <div class="ia-email-event-image-wrapper">
-                                                <img src="<?php echo wp_get_attachment_image_url($event_img->event_img_id, 'full'); ?>" alt="Event Image Preview" class="ia-email-event-image-preview">
-                                                <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="<?php echo $event_img->event_img_id; ?>">
+                                                <img src="" alt="Event Image Preview" class="ia-email-event-image-preview">
+                                                <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="">
                                                 <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
                                             </div>
-                                    <?php
-                                        }
-                                    } ?>
-                                    <label for="ia-email-event-text">Event Row Text</label>
-                                    <!-- <textarea name="ia-email-events[][event-text]" rows="5"><?php echo stripslashes($event->event_text); ?></textarea> -->
-                                    <?php
-                                    wp_editor(
-                                        stripslashes($event->event_text),
-                                        'ia-email-event-text-' . $key,
-                                        array(
-                                            'media_buttons' => false,
-                                            'textarea_rows' => '6',
-                                            'textarea_name' => 'ia-email-events[][event-text]'
-                                        )
-                                    );
-                                    ?>
-                                    <?php
-                                    $event_buttons = ia_email_get_buttons($event->id);
-                                    if (empty($event_buttons)) { ?>
-                                        <div class="ia-email-event-button-wrapper">
-                                            <div class="ia-email-event-button-inputs">
-                                                <label for="ia-email-event-button-text">Event Row Button Text</label>
-                                                <input type="text" name="ia-email-events[][event-button][text][]" value="Volunteer"></input>
-                                                <label for="ia-email-event-link">Event Row Button Link</label>
-                                                <input type="text" name="ia-email-events[][event-button][link][]" value="https://www.example.com"></input>
-                                            </div>
-                                            <div class="ia-email-event-button-controls">
-                                                <button class="ia-email-button-small ia-email-button-add">+</button>
-                                                <button class="ia-email-button-small ia-email-button-remove">-</button>
-                                            </div>
-                                        </div>
+                                            <?php
+                                        } else {
+                                            foreach ($event_imgs as $event_img) { ?>
+                                                <div class="ia-email-event-image-wrapper">
+                                                    <img src="<?php echo wp_get_attachment_image_url($event_img->event_img_id, 'full'); ?>" alt="Event Image Preview" class="ia-email-event-image-preview">
+                                                    <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="<?php echo $event_img->event_img_id; ?>">
+                                                    <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
+                                                </div>
                                         <?php
-                                    } else {
-                                        foreach ($event_buttons as $event_button) { ?>
+                                            }
+                                        } ?>
+                                        <label for="ia-email-event-text">Event Row Text</label>
+                                        <!-- <textarea name="ia-email-events[][event-text]" rows="5"><?php echo stripslashes($event->event_text); ?></textarea> -->
+                                        <?php
+                                        wp_editor(
+                                            stripslashes($event->event_text),
+                                            'ia-email-event-text-' . $key,
+                                            array(
+                                                'media_buttons' => false,
+                                                'textarea_rows' => '6',
+                                                'textarea_name' => 'ia-email-events[][event-text]'
+                                            )
+                                        );
+                                        ?>
+                                        <?php
+                                        $event_buttons = ia_email_get_buttons($event->id);
+                                        if (empty($event_buttons)) { ?>
                                             <div class="ia-email-event-button-wrapper">
                                                 <div class="ia-email-event-button-inputs">
                                                     <label for="ia-email-event-button-text">Event Row Button Text</label>
-                                                    <input type="text" name="ia-email-events[][event-button][text][]" value="<?php echo stripslashes($event_button->event_button_text); ?>"></input>
+                                                    <input type="text" name="ia-email-events[][event-button][text][]" value="Volunteer"></input>
                                                     <label for="ia-email-event-link">Event Row Button Link</label>
-                                                    <input type="text" name="ia-email-events[][event-button][link][]" value="<?php echo stripslashes($event_button->event_button_link); ?>"></input>
+                                                    <input type="text" name="ia-email-events[][event-button][link][]" value="https://www.example.com"></input>
                                                 </div>
                                                 <div class="ia-email-event-button-controls">
-                                                    <button class="ia-email-button-small ia-email-button-add"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/plus-solid.svg'; ?>" alt="Add Button Row" title="Add Button Row"></button>
-                                                    <button class="ia-email-button-small ia-email-button-remove"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/trash-solid.svg'; ?>" alt="Remove Button Row" title="Remove Button Row"></button>
+                                                    <button class="ia-email-button-small ia-email-button-add">+</button>
+                                                    <button class="ia-email-button-small ia-email-button-remove">-</button>
                                                 </div>
                                             </div>
-                                    <?php
-                                        }
-                                    } ?>
+                                            <?php
+                                        } else {
+                                            foreach ($event_buttons as $event_button) { ?>
+                                                <div class="ia-email-event-button-wrapper">
+                                                    <div class="ia-email-event-button-inputs">
+                                                        <label for="ia-email-event-button-text">Event Row Button Text</label>
+                                                        <input type="text" name="ia-email-events[][event-button][text][]" value="<?php echo stripslashes($event_button->event_button_text); ?>"></input>
+                                                        <label for="ia-email-event-link">Event Row Button Link</label>
+                                                        <input type="text" name="ia-email-events[][event-button][link][]" value="<?php echo stripslashes($event_button->event_button_link); ?>"></input>
+                                                    </div>
+                                                    <div class="ia-email-event-button-controls">
+                                                        <button class="ia-email-button-small ia-email-button-add"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/plus-solid.svg'; ?>" alt="Add Button Row" title="Add Button Row"></button>
+                                                        <button class="ia-email-button-small ia-email-button-remove"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/trash-solid.svg'; ?>" alt="Remove Button Row" title="Remove Button Row"></button>
+                                                    </div>
+                                                </div>
+                                        <?php
+                                            }
+                                        } ?>
+                                    </div>
                                 </div>
-                            </div>
                         <?php } ?>
                     </div>
                     <label for="ia-email-footer-signup">Footer Sign-Up Text</label>

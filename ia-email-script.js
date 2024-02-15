@@ -82,110 +82,97 @@ addEventListener('DOMContentLoaded', () => {
 
     function currentRows() {
 
-        let selectImageButtons = document.querySelectorAll('.ia-email-select-image')
-        let selectMinimizeButtons = document.querySelectorAll('.ia-email-minimize')
-        let selectMaximizeButtons = document.querySelectorAll('.ia-email-maximize')
-        let selectRemoveButtons = document.querySelectorAll('.ia-email-remove')
-        let selectDropdowns = document.querySelectorAll('.ia-email-tec-dropdown')
-        let selectMultiImage = document.querySelectorAll('[name="ia-email-events[][event-two-imgs]"]')
-        let selectDivider = document.querySelectorAll('[name="ia-email-events[][event-divider]"]')
-        let selectMute = document.querySelectorAll('[name="ia-email-events[][event-mute]"]')
-        let selectEventButtonAdd = document.querySelectorAll('.ia-email-button-add')
-        let selectEventButtonRemove = document.querySelectorAll('.ia-email-button-remove')
-        let selectMoveRowDown = document.querySelectorAll('.ia-email-move-down')
-        let selectMoveRowUp = document.querySelectorAll('.ia-email-move-up')
+        let rows = document.querySelectorAll('.ia-email-events-row')
 
-        for (let minButton of selectMinimizeButtons) {
-            minButton.addEventListener('click', (e) => {
+        for (let [i, row] of rows.entries()) {
+            let selectImageButton = row.querySelector('.ia-email-select-image')
+            let selectMinimizeButton = row.querySelector('.ia-email-minimize')
+            let selectMaximizeButton = row.querySelector('.ia-email-maximize')
+            let selectRemoveButton = row.querySelector('.ia-email-remove')
+            let selectDropdown = row.querySelector('.ia-email-tec-dropdown')
+            let selectMultiImage = row.querySelector('[name="ia-email-events[][event-two-imgs]"]')
+            let selectDivider = row.querySelector('[name="ia-email-events[][event-divider]"]')
+            let selectMute = row.querySelector('[name="ia-email-events[][event-mute]"]')
+            let selectEventButtonAdd = row.querySelector('.ia-email-button-add')
+            let selectEventButtonRemove = row.querySelector('.ia-email-button-remove')
+            let selectMoveRowDown = row.querySelector('.ia-email-move-down')
+            let selectMoveRowUp = row.querySelector('.ia-email-move-up')
+            let isMinimized = row.querySelector('[name="ia-email-events[][event-minimized]"]')
+
+            selectMinimizeButton.addEventListener('click', (e) => {
                 e.preventDefault()
-                minButton.parentNode.parentNode.parentNode.classList.add('ia-email-events-row-hide')
+                selectMinimizeButton.parentNode.parentNode.parentNode.classList.add('ia-email-events-row-hide')
+                isMinimized.value = "yes"
             })
-        }
 
-        for (let maxButton of selectMaximizeButtons) {
-            maxButton.addEventListener('click', (e) => {
+            selectMaximizeButton.addEventListener('click', (e) => {
                 e.preventDefault()
-                maxButton.parentNode.parentNode.parentNode.classList.remove('ia-email-events-row-hide')
+                selectMaximizeButton.parentNode.parentNode.parentNode.classList.remove('ia-email-events-row-hide')
+                isMinimized.value = "no"
             })
-        }
 
-        for (let [i, removeButton] of selectRemoveButtons.entries()) {
-            removeButton.addEventListener('click', (e) => {
+
+
+            selectRemoveButton.addEventListener('click', (e) => {
                 e.preventDefault()
                 if (i > 0) {
                     removeButton.parentNode.parentNode.parentNode.remove()
                 }
             })
-        }
 
-        for (let multiImage of selectMultiImage) {
-            multiImage.addEventListener('click', () => {
-                const parentEl = multiImage.parentElement.parentElement.parentElement
+
+            selectMultiImage.addEventListener('click', () => {
+                const parentEl = selectMultiImage.parentElement.parentElement.parentElement
                 const imgWrap = parentEl.querySelector('.ia-email-event-image-wrapper')
                 const imgWrapClone = imgWrap.cloneNode(true)
-                if (multiImage.checked) {
+                if (selectMultiImage.checked) {
                     imgWrap.after(imgWrapClone)
                     initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
                 } else {
                     imgWrap.nextElementSibling.remove()
                 }
             })
-        }
 
-        for (let divider of selectDivider) {
-            handleDivider(divider)
-            divider.addEventListener('click', () => {
-                handleDivider(divider)
+            handleDivider(selectDivider)
+            selectDivider.addEventListener('click', () => {
+                handleDivider(selectDivider)
             })
-        }
 
-        for (let mute of selectMute) {
-            handleMute(mute)
-            mute.addEventListener('click', () => {
-                handleMute(mute)
+            handleMute(selectMute)
+            selectMute.addEventListener('click', () => {
+                handleMute(selectMute)
             })
-        }
 
-        selectEventButtonAdd.forEach((e) => {
-            e.addEventListener('click', (f) => {
-                f.preventDefault()
+            selectEventButtonAdd.addEventListener('click', (e) => {
+                e.preventDefault()
                 createEventButtons(e)
             })
-        })
 
-        for (let [i, eventButtonRemove] of selectEventButtonRemove.entries()) {
-            eventButtonRemove.addEventListener('click', (e) => {
+            selectEventButtonRemove.addEventListener('click', (e) => {
                 e.preventDefault()
                 if (i > 0) {
-                    eventButtonRemove.parentElement.parentElement.remove()
+                    selectEventButtonRemove.parentElement.parentElement.remove()
                 }
             })
+
+            initSelectImage(selectImageButton)
+
+
+            selectDropdown.addEventListener('change', (e) => {
+                populateRow(e, selectDropdown.value)
+            })
+
+            selectMoveRowDown.addEventListener('click', (e) => {
+                e.preventDefault()
+                moveRowDown(selectMoveRowDown)
+            })
+
+
+            selectMoveRowUp.addEventListener('click', (e) => {
+                e.preventDefault()
+                moveRowUp(selectMoveRowUp)
+            })
         }
-
-        selectImageButtons.forEach((e) => {
-            initSelectImage(e)
-        })
-
-        selectDropdowns.forEach((e) => {
-            e.addEventListener('change', () => {
-                populateRow(e, e.value)
-            })
-        })
-
-        selectMoveRowDown.forEach((e) => {
-            e.addEventListener('click', (f) => {
-                f.preventDefault()
-
-                moveRowDown(e)
-            })
-        })
-
-        selectMoveRowUp.forEach((e) => {
-            e.addEventListener('click', (f) => {
-                f.preventDefault()
-                moveRowUp(e)
-            })
-        })
     }
 
     function createEvent() {
