@@ -95,7 +95,7 @@ if (!empty($_POST)) {
                                             </label>
                                         </div>
                                         <label for="ia-email-event-header">Event Row Header</label>
-                                        <input type="text" name="ia-email-events[][event-header]" value="<?php echo stripslashes($event->event_header_text); ?>"></input>
+                                        <input type="text" name="ia-email-events[][event-header]" value="<?php echo esc_html(stripslashes($event->event_header_text)); ?>"></input>
                                         <label for="ia-email-event-image">Event Row Image</label>
                                         <?php
                                         $event_imgs = ia_email_get_imgs($event->id);

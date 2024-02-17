@@ -116,7 +116,7 @@ addEventListener('DOMContentLoaded', () => {
             selectRemoveButton.addEventListener('click', (e) => {
                 e.preventDefault()
                 if (i > 0) {
-                    removeButton.parentNode.parentNode.parentNode.remove()
+                    selectRemoveButton.parentNode.parentNode.parentNode.remove()
                 }
             })
 
@@ -145,7 +145,7 @@ addEventListener('DOMContentLoaded', () => {
 
             selectEventButtonAdd.addEventListener('click', (e) => {
                 e.preventDefault()
-                createEventButtons(e)
+                createEventButtons(selectEventButtonAdd)
             })
 
             selectEventButtonRemove.addEventListener('click', (e) => {
@@ -159,7 +159,7 @@ addEventListener('DOMContentLoaded', () => {
 
 
             selectDropdown.addEventListener('change', (e) => {
-                populateRow(e, selectDropdown.value)
+                populateRow(selectDropdown, selectDropdown.value)
             })
 
             selectMoveRowDown.addEventListener('click', (e) => {
