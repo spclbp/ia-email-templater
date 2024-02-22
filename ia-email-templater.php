@@ -2,7 +2,7 @@
 /*
 Plugin Name: Indy Ambassadors Email Templater
 Description: A custom plugin for generating the weekly newsletter by Indy Ambassadors. Requires The Events Calendar Plugin.
-Version: 1.8
+Version: 1.9
 Requires at least: 6.0
 Requires PHP: 5.6
 Author: Josh Klein
