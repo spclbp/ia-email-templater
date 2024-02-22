@@ -83,6 +83,9 @@ addEventListener('DOMContentLoaded', () => {
     function currentRows() {
 
         let rows = document.querySelectorAll('.ia-email-events-row')
+        let headerImageButton = document.querySelector('.ia-email-select-image-header')
+        initSelectImage(headerImageButton)
+
 
         for (let [i, row] of rows.entries()) {
             let selectImageButton = row.querySelector('.ia-email-select-image')
@@ -93,8 +96,8 @@ addEventListener('DOMContentLoaded', () => {
             let selectMultiImage = row.querySelector('[name="ia-email-events[][event-two-imgs]"]')
             let selectDivider = row.querySelector('[name="ia-email-events[][event-divider]"]')
             let selectMute = row.querySelector('[name="ia-email-events[][event-mute]"]')
-            let selectEventButtonAdd = row.querySelector('.ia-email-button-add')
-            let selectEventButtonRemove = row.querySelector('.ia-email-button-remove')
+            let selectEventButtonAdd = row.querySelectorAll('.ia-email-button-add')
+            let selectEventButtonRemove = row.querySelectorAll('.ia-email-button-remove')
             let selectMoveRowDown = row.querySelector('.ia-email-move-down')
             let selectMoveRowUp = row.querySelector('.ia-email-move-up')
             let isMinimized = row.querySelector('[name="ia-email-events[][event-minimized]"]')
@@ -143,16 +146,20 @@ addEventListener('DOMContentLoaded', () => {
                 handleMute(selectMute)
             })
 
-            selectEventButtonAdd.addEventListener('click', (e) => {
-                e.preventDefault()
-                createEventButtons(selectEventButtonAdd)
+            selectEventButtonAdd.forEach((e) => {
+                e.addEventListener('click', (f) => {
+                    f.preventDefault()
+                    createEventButtons(e)
+                })
             })
 
-            selectEventButtonRemove.addEventListener('click', (e) => {
-                e.preventDefault()
-                if (i > 0) {
-                    selectEventButtonRemove.parentElement.parentElement.remove()
-                }
+            selectEventButtonRemove.forEach((e, i) => {
+                e.addEventListener('click', (f) => {
+                    f.preventDefault()
+                    if (i > 0) {
+                        e.parentElement.parentElement.remove()
+                    }
+                })
             })
 
             initSelectImage(selectImageButton)

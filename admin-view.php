@@ -21,7 +21,7 @@ if (!empty($_POST)) {
                     <div class="ia-email-header-image-wrapper">
                         <img src="<?php echo wp_get_attachment_image_url(ia_email_get('header_image_id'), 'full'); ?>" alt="Header Image Preview" class="ia-email-header-image">
                         <input type="hidden" name="ia-email-header-image" class="ia-email-header-image-id" value="<?php echo ia_email_get('header_image_id'); ?>">
-                        <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
+                        <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image-header">
                     </div>
                     <label for="ia-email-title-text">Header Text</label>
                     <input type="text" name="ia-email-title-text" id="ia-email-title-text" value="<?php echo stripslashes(ia_email_get('header_text')); ?>"></input>
