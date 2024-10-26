@@ -230,8 +230,8 @@ if (!empty($_POST)) {
                 </div>
                 <div style="text-align: center; line-height: 1;">
                     <span style="font-size: 36px; font-weight: bold;">Volunteer Events</span>
-                    <br />
-                    <span style="font-size: 14px; font-style: italic; background-color: lightyellow;">Newly reported opportunities are highlighted.</span>
+                    <!--br />
+                    <span style="font-size: 14px; font-style: italic; background-color: lightyellow;">Newly reported opportunities are highlighted.</span-->
                     <br />
                     <span style="font-size: 14px;"></span>Visit <a href="https://www.indyambassadors.org/events/">our events calendar</a> for full schedule.</span>
                 </div>
