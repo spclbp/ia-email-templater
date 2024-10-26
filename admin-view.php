@@ -216,7 +216,7 @@ if (!empty($_POST)) {
                                                             <!-- This is the newsletter introductory paragraph(s). -->
                                                             <p><?php echo stripslashes(ia_email_get('intro_paragraph')); ?></p>
                                                             <p><?php echo stripslashes(ia_email_get('intro_signature')); ?></p>
-                                                            <a href='mailto:volunteeradmin@indyambassadors.org'>volunteeradmin@indyambassadors.org</a>
+                                                            <!--a href='mailto:volunteeradmin@indyambassadors.org'>volunteeradmin@indyambassadors.org</a-->
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -229,16 +229,14 @@ if (!empty($_POST)) {
                     </table>
                 </div>
                 <div style="text-align: center; line-height: 1;">
-                    <span style="font-size: 36px; font-weight: bold;">Volunteer Events</span>
-                    <br />
-                    <span style="font-size: 14px; font-style: italic; background-color: lightyellow;">Newly reported opportunities are highlighted.</span>
+                    <span style="font-size: 36px; font-weight: bold;">Featured Events</span>
                     <br />
                     <span style="font-size: 14px;"></span>Visit <a href="https://www.indyambassadors.org/events/">our events calendar</a> for full schedule.</span>
                 </div>
 
                 <?php
                 foreach ($events as $event) {
-                    if ($event->event_mute !== 'on') {
+                    if (($event->event_mute !== 'on') && ($event->event_featured == 'on')) {
                         if ($event->event_divider == 'on') { ?>
                             <div style="text-align: center; line-height: 1; margin-bottom: 4px;">
                                 <span style="font-size: 36px; font-weight: bold;"><?php echo stripslashes($event->event_header_text); ?></span><br />
@@ -250,7 +248,7 @@ if (!empty($_POST)) {
                         } else {
                         ?>
                             <!--   TEMPLATE  Multiple events, single picture   -->
-                            <div class="two-col" style="text-align: center; font-size: 0;background-color: <?php if ($event->event_featured == 'on') { ?> lightyellow; <?php } else { ?> transparent; <?php } ?>"><!-- change to zero/> --> <!--[if mso]>  <table role="presentation" width="100%">  <tr>  <td sstyle="width:50%;padding:10px;" valign="middle">  <![endif]-->
+                            <div class="two-col" style="text-align: center; font-size: 0;background-color: transparent;"><!-- change to zero/> --> <!--[if mso]>  <table role="presentation" width="100%">  <tr>  <td sstyle="width:50%;padding:10px;" valign="middle">  <![endif]-->
                                 <div class="column" style="width: 100%; max-width: 330px; display: inline-block; vertical-align: middle;">
                                     <div style="padding: 10px;">
                                         <p style="margin: 0; font-family: Arial,sans-serif; font-size: 14px; line-height: 18px;">
@@ -293,13 +291,35 @@ if (!empty($_POST)) {
                                     </div>
                                 </div><!-- [if mso]>  </td>  </tr>  </table>  <![endif]-->
                             </div>
-                            <div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"> </div>
+                            <!--div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"> </div-->
                 <?php
                         }
                     }
-                } ?>
-
-                <div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"> </div>
+                } 
+                ?>
+                    <div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"></div>
+                    <div style="text-align: center; line-height: 1; margin-bottom: 4px;"><span style="font-size: 36px; font-weight: bold;">More Volunteer Events</span></div>
+                    <div class="spacer" style="line-height: 10px;"></div>
+                    <div class="one-col" style="text-align: center; font-size: 0; background-color: transparent;"><!-- change to zero/> --> <!-- [if mso]>  <table role="presentation" width="100%">  <tr>  <td sstyle="width:100%;padding:10px;" valign="middle">  <![endif]-->
+                    <div class="column" style="width: 100%; max-width: 660px; display: inline-block; vertical-align: middle;">
+                    <div style="font-size: 14px; line-height: 1.2; text-align: left;">
+                    <ul>
+                <?php
+                foreach ($events as $event) {
+                    if (($event->event_mute !== 'on') && ($event->event_featured !== 'on')) {
+                        $event_buttons = ia_email_get_buttons($event->id);
+                        ?>
+                        <li style="padding-bottom: 4px;"><a href="<?php echo stripslashes($event_buttons[0]->event_button_link); ?>"><?php echo stripslashes($event->event_header_text); ?></a></li>
+                <?php
+                    }
+                } 
+                ?>
+                    </ul>
+                    </div>
+                    </div>
+                    </div>
+                    <!-- [if mso]>  </td>  </tr>  </table>  <![endif]-->
+                <!--div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"> </div-->
 
                 <!-- Below this line is the closing remarks.  All the articles should be above this line. -->
                 <div>
