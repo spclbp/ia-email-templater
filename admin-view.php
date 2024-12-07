@@ -261,47 +261,42 @@ if (!empty($_POST)) {
                                 }
                             } 
                             ?>
+                            <tr style="background-color: Gainsboro;">
+                                <td>
+                                    <div style="text-align: center; line-height: 1; margin-bottom: 4px;"><span style="font-size: 36px; font-weight: bold;">More Volunteer Events</span></div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <ul>
+                                        <?php
+                                        foreach ($events as $event) {
+                                            if (($event->event_mute !== 'on') && ($event->event_featured !== 'on')) {
+                                                $event_buttons = ia_email_get_buttons($event->id);
+                                                ?>
+                                                <li style="padding: 2px;"><a href="<?php echo stripslashes($event_buttons[0]->event_button_link); ?>"><?php echo stripslashes($event->event_header_text); ?></a></li>
+                                        <?php
+                                            }
+                                        } 
+                                        ?>
+                                    </ul>
+                                </td>
+                            </tr>
+                            <tr style='background-color: WhiteSmoke;'>
+                                <td>
+                                    <p><?php echo stripslashes(ia_email_get('footer_signup')); ?></p>
+                                    <p><?php echo stripslashes(ia_email_get('footer_socials')); ?></p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-
-                        <div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"></div>
-                    <div style="text-align: center; line-height: 1; margin-bottom: 4px;"><span style="font-size: 36px; font-weight: bold;">More Volunteer Events</span></div>
-                    <div class="spacer" style="line-height: 10px;"></div>
-                    <div class="one-col" style="text-align: center; font-size: 0; background-color: transparent;"><!-- change to zero/> --> <!-- [if mso]>  <table role="presentation" width="100%">  <tr>  <td sstyle="width:100%;padding:10px;" valign="middle">  <![endif]-->
-                    <div class="column" style="width: 100%; max-width: 660px; display: inline-block; vertical-align: middle;">
-                    <div style="font-size: 14px; line-height: 1.2; text-align: left;">
-                    <ul>
-                <?php
-                foreach ($events as $event) {
-                    if (($event->event_mute !== 'on') && ($event->event_featured !== 'on')) {
-                        $event_buttons = ia_email_get_buttons($event->id);
-                        ?>
-                        <li style="padding-bottom: 4px;"><a href="<?php echo stripslashes($event_buttons[0]->event_button_link); ?>"><?php echo stripslashes($event->event_header_text); ?></a></li>
-                <?php
-                    }
-                } 
-                ?>
-                    </ul>
-                    </div>
-                    </div>
-                    </div>
-                    <!-- [if mso]>  </td>  </tr>  </table>  <![endif]-->
-                <!--div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"> </div-->
-
-                <!-- Below this line is the closing remarks.  All the articles should be above this line. -->
-                <div>
-                    <p><?php echo stripslashes(ia_email_get('footer_signup')); ?></p>
-                    <div><?php echo stripslashes(ia_email_get('footer_socials')); ?></div>
-                </div>
             </div>
         </div>
-
         <div class="ia-email-admin-outputs">
             <div class="ia-email-admin-outputs-header">
                 <h2 class="ia-email-templater-header">The HTML</h2> <button id="toggle-code" class="ia-email-button-small">Show / Hide</button>
             </div>
             <pre><code id="the-code"></code></pre>
         </div>
-
     </div>
