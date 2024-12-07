@@ -23,6 +23,7 @@ if (!empty($_POST)) {
                         <input type="hidden" name="ia-email-header-image" class="ia-email-header-image-id" value="<?php echo ia_email_get('header_image_id'); ?>">
                         <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image-header">
                     </div>
+                    <div style="display:none;">
                     <label for="ia-email-title-text">Header Text</label>
                     <input type="text" name="ia-email-title-text" id="ia-email-title-text" value="<?php echo stripslashes(ia_email_get('header_text')); ?>"></input>
                     <label for="ia-email-intro-p">Intro Text</label>
@@ -39,6 +40,7 @@ if (!empty($_POST)) {
                     ?>
                     <label for="ia-email-intro-signature">Intro Signature</label>
                     <input type="text" name="ia-email-intro-signature" id="ia-email-intro-signature" value="<?php echo ia_email_get('intro_signature'); ?>"></input>
+                </div>
                     <div class="ia-email-events-wrapper">
                         <?php
                         $events = ia_email_get('events');
@@ -193,46 +195,44 @@ if (!empty($_POST)) {
             <div id="the-preview">
                 <!-- This is the HTML for a 'Volunteering Matters' Newsletter. -->
                 <div role="article" aria-roledescription="email" lang="en" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; background-color: #ffffff;">
-                    <table role="presentation" style="width: 98.0613%; border: 0px; border-spacing: 0px;">
+                    <table role="presentation" style="width: 100%; border: 0px; border-spacing: 0px;">
                         <tbody>
                             <tr>
-                                <td align="center" style="width: 100%;">
-                                    <div class="outer" style="width: 96%; max-width: 660px; margin: 20px auto;">
+                                <td align="center" style="width: 100%; max-width: 660px;">
+                                                        <!-- Newsletter header image -->
+                                                        <img src="<?php echo wp_get_attachment_url(ia_email_get('header_image_id')); ?>" width="640" alt="" style="width: 100%; height: auto;" />
+                                    <!--div class="outer" style="width: 96%; max-width: 660px; margin: 20px auto;">
                                         <table role="presentation" style="width: 100%; border: 0; border-spacing: 0;">
                                             <tbody>
                                                 <tr>
                                                     <td style="padding: 10px 10px 20px 10px; font-family: Arial,sans-serif; font-size: 24px; line-height: 28px; font-weight: bold;">
-                                                        <!-- Newsletter header image -->
-                                                        <img src="<?php echo wp_get_attachment_url(ia_email_get('header_image_id')); ?>" width="640" alt="" style="width: 100%; height: auto;" />
+                                                        <img src="<-?php echo wp_get_attachment_url(ia_email_get('header_image_id')); ?>" width="640" alt="" style="width: 100%; height: auto;" />
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td style="padding: 10px; text-align: left;">
-                                                        <!-- Newsletter Header -->
                                                         <h1 style="margin-top: 0; margin-bottom: 16px; font-family: Arial,sans-serif; font-size: 26px; line-height: 32px; font-weight: bold;">
-                                                            <?php echo stripslashes(ia_email_get('header_text')); ?>
+                                                            <-?php echo stripslashes(ia_email_get('header_text')); ?>
                                                         </h1>
                                                         <div style="margin: 0; font-family: Arial,sans-serif; font-size: 18px; line-height: 24px;">
-                                                            <!-- This is the newsletter introductory paragraph(s). -->
-                                                            <p><?php echo stripslashes(ia_email_get('intro_paragraph')); ?></p>
-                                                            <p><?php echo stripslashes(ia_email_get('intro_signature')); ?></p>
-                                                            <!--a href='mailto:volunteeradmin@indyambassadors.org'>volunteeradmin@indyambassadors.org</a-->
+                                                            <p><-?php echo stripslashes(ia_email_get('intro_paragraph')); ?></p>
+                                                            <p><-?php echo stripslashes(ia_email_get('intro_signature')); ?></p>
                                                         </div>
                                                     </td>
                                                 </tr>
                                             </tbody>
                                         </table>
-                                    </div>
+                                    </div-->
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <div style="text-align: center; line-height: 1;">
+                <!--div style="text-align: center; line-height: 1;">
                     <span style="font-size: 36px; font-weight: bold;">Featured Events</span>
                     <br />
                     <span style="font-size: 14px;"></span>Visit <a href="https://www.indyambassadors.org/events/">our events calendar</a> for full schedule.</span>
-                </div>
+                </div-->
 
                 <?php
                 foreach ($events as $event) {
@@ -247,51 +247,36 @@ if (!empty($_POST)) {
                         <?php
                         } else {
                         ?>
-                            <!--   TEMPLATE  Multiple events, single picture   -->
-                            <div class="two-col" style="text-align: center; font-size: 0;background-color: transparent;"><!-- change to zero/> --> <!--[if mso]>  <table role="presentation" width="100%">  <tr>  <td sstyle="width:50%;padding:10px;" valign="middle">  <![endif]-->
-                                <div class="column" style="width: 100%; max-width: 330px; display: inline-block; vertical-align: middle;">
-                                    <div style="padding: 10px;">
-                                        <p style="margin: 0; font-family: Arial,sans-serif; font-size: 14px; line-height: 18px;">
-                                            <!-- ---------------    Update the article image link ----------------- -->
-                                            <?php
-                                            $event_imgs = ia_email_get_imgs($event->id);
-                                            if (count($event_imgs) > 1) { ?>
-                                                <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="150" alt="" style="display: inline; width: 150px; max-width: 100%; height: auto; flat: left;" />
-                                                <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="150" alt="" style="display: inline; width: 150px; max-width: 100%; height: auto; float: right;" />
-                                            <?php
-                                            } else { ?>
-                                                <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="310" alt="" style="display: block; width: 310px; max-width: 100%; height: auto;" />
-                                            <?php
-                                            } ?>
-                                        </p>
-                                    </div>
-                                </div><!-- [if mso]>  </td>  <td style="width:50%;padding:10px;" valign="middle">  <![endif]-->
-                                <div class="column" style="width: 100%; max-width: 330px; display: inline-block; vertical-align: middle;">
-                                    <div style="padding: 10px; font-size: 14px; line-height: 18px; text-align: left;">
-                                        <p style="margin-top: 0; margin-bottom: 12px; font-family: Arial,sans-serif; font-weight: bold;">
-                                            <!-- ---------------     Update the Article Heading ------------------ -->
-                                            <?php echo stripslashes($event->event_header_text); ?>
-                                        </p>
-                                        <!-- -------------------- Update the Article Body ----------------------->
-                                        <p style="margin-top: 0; margin-bottom: 14px; font-family: Arial,sans-serif;">
-                                            <?php echo stripslashes($event->event_text); ?>
-                                        </p>
-                                        <p style="margin: 0; font-family: Arial,sans-serif;">
-                                            <!-- -----------------   Update the Article Action Link ------------------- -->
-                                            <?php
-                                            $event_buttons = ia_email_get_buttons($event->id);
-                                            foreach ($event_buttons as $event_button) { ?>
-                                                <a href="<?php echo stripslashes($event_button->event_button_link); ?>" style="background: #ffffff; border: 2px solid #8dc1d6; text-decoration: none; padding: 10px 8px; color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise: 10pt; font-weight: bold;">
-                                                        <!-- -------------   Update the Article Action Prompt -------------------- -->
-                                                        <?php echo stripslashes($event_button->event_button_text); ?>
-                                                    </span><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%">&nbsp;</i><![endif]--></a>
-                                            <?php
-                                            } ?>
-                                        </p>
-                                    </div>
-                                </div><!-- [if mso]>  </td>  </tr>  </table>  <![endif]-->
-                            </div>
-                            <!--div class="spacer" style="line-height: 24px; height: 24px; mso-line-height-rule: exactly;"> </div-->
+                            <div class="one-col" style="display:block; text-align: left; background-color: transparent;"><div class="column">
+                                <p style="margin-top: 0; margin-bottom: 12px; font-family: Arial,sans-serif; font-weight: bold;">
+                                    <?php echo stripslashes($event->event_header_text); ?>
+                                </p>
+                                <div>
+                                <?php
+                                    $event_imgs = ia_email_get_imgs($event->id);
+                                    if (count($event_imgs) > 1) { ?>
+                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="17%" alt="" style="display: inline; width: 17%; max-width: 79px; height: auto; float: left; margin: 0px 0px 2px 2px;" />
+                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="17%" alt="" style="display: inline; width: 17%; max-width: 79px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
+                                    <?php
+                                    } else { ?>
+                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="35%" alt="" style="display: block; width: 35%; max-width: 160px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
+                                    <?php
+                                } ?>
+                                <p style="margin-top: 0; margin-bottom: 14px; font-family: Arial,sans-serif;">
+                                        <?php echo stripslashes($event->event_text); ?>
+                                </p>
+                                <p style="margin: 0; font-family: Arial,sans-serif;">
+                                    <?php
+                                    $event_buttons = ia_email_get_buttons($event->id);
+                                    foreach ($event_buttons as $event_button) { ?>
+                                        <a href="<?php echo stripslashes($event_button->event_button_link); ?>" style="background: #ffffff; border: 2px solid #8dc1d6; text-decoration: none; padding: 10px 8px; color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise: 10pt; font-weight: bold;">
+                                                <?php echo stripslashes($event_button->event_button_text); ?>
+                                            </span></a> &nbsp; 
+                                    <?php
+                                    } ?>
+                                </p>
+                                </div>
+                            </div></div>
                 <?php
                         }
                     }
