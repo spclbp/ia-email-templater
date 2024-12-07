@@ -230,19 +230,22 @@ if (!empty($_POST)) {
                                                 <?php
                                                 } ?>
                                             <div>
+                                            <p style="margin-top: 0; margin-bottom: 14px; font-family: Arial,sans-serif;">
                                             <?php
                                                 $event_imgs = ia_email_get_imgs($event->id);
                                                 $event_image1_url=wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full');
+                                                $event_text=stripslashes($event->event_text);
+                                                $event_words = preg_split('/\s+/', $event_text);
+                                                echo implode(" ", array_slice($event_words,0,20));
                                                 if (count($event_imgs) > 1) { ?>
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="17%" alt="" style="display: inline; width: 17%; max-width: 79px; height: auto; float: left; margin: 0px 0px 2px 2px;" />
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="17%" alt="" style="display: inline; width: 17%; max-width: 79px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
+                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="23%" alt="" style="display: inline; width: 23%; max-width: 99px; height: auto; float: left; margin: 0px 0px 2px 2px;" />
+                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="23%" alt="" style="display: inline; width: 23%; max-width: 99px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
                                                 <?php
                                                 } elseif (!empty($event_image1_url)) { ?>
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="35%" alt="" style="display: block; width: 35%; max-width: 160px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
+                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" style="display: block; width: 47%; max-width: 200px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
                                                 <?php
                                             } ?>
-                                            <p style="margin-top: 0; margin-bottom: 14px; font-family: Arial,sans-serif;">
-                                                    <?php echo stripslashes($event->event_text); ?>
+                                                    <?php echo implode(" ", array_slice($event_words,21)); ?>
                                             </p>
                                             <p style="margin: 0; font-family: Arial,sans-serif;text-align:right;">
                                                 <?php
