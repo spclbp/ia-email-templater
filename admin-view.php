@@ -235,21 +235,24 @@ if (!empty($_POST)) {
                                                 $event_imgs = ia_email_get_imgs($event->id);
                                                 $event_image1_url=wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full');
                                                 $event_text=stripslashes($event->event_text);
-                                                $event_words = preg_split('/\s+/', $event_text);
-                                                echo implode(" ", array_slice($event_words,0,20));
                                                 if (count($event_imgs) > 1) { ?>
                                                     <div>
                                                         <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="23%" alt="" 
                                                         style="display: inline; width: 32%; max-width: 99px; height: auto; float: left; margin: 0px 0px 2px 2px;" />
                                                         <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="23%" alt="" 
                                                         style="display: inline; width: 32%; max-width: 99px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo $event_text;  ?>
                                                     </div>
                                                 <?php
                                                 } elseif (!empty($event_image1_url)) { ?>
+                                                    <?php $event_words = preg_split('/\s+/', $event_text);
+                                                    echo implode(" ", array_slice($event_words,0,20)); ?>
                                                     <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" style="display: block; width: 65%; max-width: 200px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
-                                                <?php
-                                            } ?>
                                                     <?php echo implode(" ", array_slice($event_words,20)); ?>
+                                                <?php
+                                                } else { 
+                                                    echo $event_text;
+                                                } ?>
                                             </p>
                                             <p style="margin: 0; font-family: Arial,sans-serif;text-align:right;">
                                                 <?php
