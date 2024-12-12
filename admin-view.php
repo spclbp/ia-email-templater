@@ -230,7 +230,6 @@ if (!empty($_POST)) {
                                                 <?php
                                                 } ?>
                                             <div>
-                                            <!--p style="margin-top: 0; margin-bottom: 14px; font-family: Arial,sans-serif;"-->
                                             <?php
                                                 $event_imgs = ia_email_get_imgs($event->id);
                                                 $event_image1_url=wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full');
@@ -252,26 +251,29 @@ if (!empty($_POST)) {
                                                 <?php
                                                 } else { 
                                                     echo $event_text;
-                                                } ?>
-                                            <!--/p-->
-                                            <span style="margin: 0; font-family: Arial,sans-serif; float: right;">
-                                                <nobr>
-                                                <?php
+                                                } 
                                                 $event_buttons = ia_email_get_buttons($event->id);
-                                                $left_margin = "0px";
-                                                foreach ($event_buttons as $event_button) { ?>
-                                                    <a href="<?php echo stripslashes($event_button->event_button_link); ?>" 
-                                                        style="background: #ffffff; border: 4px solid #8dc1d6; text-decoration: none; padding: 10px 8px; 
-                                                            margin: 10px 0px 0px <?php echo $left_margin; ?>;
-                                                            color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;">
-                                                        <span style="mso-text-raise: 10pt; font-weight: bold;">
-                                                            <?php echo stripslashes($event_button->event_button_text); ?>
-                                                        </span></a>
-                                                <?php
-                                                $left_margin = "4px";
-                                                } ?>
-                                                </nobr>
-                                            </span>
+                                                if (!empty($event_buttons[0]->event_button_text)) {
+                                                ?>
+                                                    <span style="margin: 0; font-family: Arial,sans-serif; float: right;">
+                                                        <nobr>
+                                                        <?php
+                                                        
+                                                        $left_margin = "0px";
+                                                        foreach ($event_buttons as $event_button) { ?>
+                                                            <a href="<?php echo stripslashes($event_button->event_button_link); ?>" 
+                                                                style="background: #ffffff; border: 4px solid #8dc1d6; text-decoration: none; padding: 10px 8px; 
+                                                                    margin: 10px 0px 0px <?php echo $left_margin; ?>;
+                                                                    color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;">
+                                                                <span style="mso-text-raise: 10pt; font-weight: bold;">
+                                                                    <?php echo stripslashes($event_button->event_button_text); ?>
+                                                                </span></a>
+                                                        <?php
+                                                        $left_margin = "4px";
+                                                        } ?>
+                                                        </nobr>
+                                                    </span>
+                                                <?php } ?>
                                             </div>
                                         </td></tr>
                             <?php
