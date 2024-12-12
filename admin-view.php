@@ -254,15 +254,20 @@ if (!empty($_POST)) {
                                                     echo $event_text;
                                                 } ?>
                                             </p>
-                                            <p style="margin: 0; font-family: Arial,sans-serif;text-align:right;">
+                                            <p style="margin: 0; font-family: Arial,sans-serif; text-align: right; white-space: nowrap; hyphens: none;">
+                                                <nobr>
                                                 <?php
                                                 $event_buttons = ia_email_get_buttons($event->id);
                                                 foreach ($event_buttons as $event_button) { ?>
-                                                    <a href="<?php echo stripslashes($event_button->event_button_link); ?>" style="background: #ffffff; border: 2px solid #8dc1d6; text-decoration: none; padding: 10px 8px; color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><!-- [if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise: 10pt; font-weight: bold;">
+                                                    <a href="<?php echo stripslashes($event_button->event_button_link); ?>" 
+                                                        style="background: #ffffff; border: 2px solid #8dc1d6; text-decoration: none; padding: 10px 8px; margin: 2px;
+                                                            color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;">
+                                                        <span style="mso-text-raise: 10pt; font-weight: bold;">
                                                             <?php echo stripslashes($event_button->event_button_text); ?>
-                                                        </span></a> &nbsp; 
+                                                        </span></a>
                                                 <?php
                                                 } ?>
+                                                </nobr>
                                             </p>
                                             </div>
                                         </td></tr>
