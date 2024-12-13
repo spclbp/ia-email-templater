@@ -234,6 +234,7 @@ if (!empty($_POST)) {
                                                 $event_imgs = ia_email_get_imgs($event->id);
                                                 $event_image1_url=wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full');
                                                 $event_text=stripslashes($event->event_text);
+                                                $event_buttons_html = ia_email_get_buttons_html($event->id);
                                                 if (count($event_imgs) > 1) { ?>
                                                     <div>
                                                         <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="23%" alt="" 
@@ -242,39 +243,17 @@ if (!empty($_POST)) {
                                                         style="display: inline; width: 32%; max-width: 99px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
                                                         <?php echo $event_text;  ?>
                                                     </div>
-                                                <?php
+                                                    <?php
                                                 } elseif (!empty($event_image1_url)) { ?>
                                                     <?php $event_words = preg_split('/\s+/', $event_text);
                                                     echo implode(" ", array_slice($event_words,0,20)); ?>
                                                     <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" style="display: block; width: 65%; max-width: 200px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
-                                                    <?php echo implode(" ", array_slice($event_words,20)); ?>
-                                                <?php
+                                                    <?php echo implode(" ", array_slice($event_words, 20)); 
                                                 } else { 
                                                     echo $event_text;
                                                 } 
-                                                $event_buttons = ia_email_get_buttons($event->id);
-                                                if (!empty($event_buttons[0]->event_button_text)) {
-                                                ?>
-                                                    <span style="margin: 0; font-family: Arial,sans-serif; float: right;">
-                                                        <nobr>
-                                                        <?php
-                                                        
-                                                        $left_margin = "0px";
-                                                        foreach ($event_buttons as $event_button) { ?>
-                                                            <a href="<?php echo stripslashes($event_button->event_button_link); ?>" 
-                                                                style="background: #ffffff; border: 4px solid #8dc1d6; text-decoration: none; padding: 10px 8px; 
-                                                                    margin: 10px 0px 0px <?php echo $left_margin; ?>;
-                                                                    color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;">
-                                                                <span style="mso-text-raise: 10pt; font-weight: bold;">
-                                                                    <?php echo stripslashes($event_button->event_button_text); ?>
-                                                                </span></a>
-                                                        <?php
-                                                        $left_margin = "4px";
-                                                        } ?>
-                                                        </nobr>
-                                                    </span>
-                                                <?php } ?>
-                                            </div>
+                                                echo $event_buttons_html; ?>
+                                                </div>
                                         </td></tr>
                             <?php
                                     }
