@@ -313,7 +313,7 @@ function ia_email_get_buttons_html($event_id)
     $result = '';
     $event_buttons = ia_email_get_buttons($event_id);
     if (!empty($event_buttons[0]->event_button_text)) {
-        $result .= '<span style="margin: 0; font-family: Arial,sans-serif; float: right;"><nobr>';
+        $result .= '<span style="margin: 0px 0px 10px 0px; font-family: Arial,sans-serif; float: right;"><nobr>';
         $left_margin = '0px';
         foreach ($event_buttons as $event_button) { 
             $result .= '<a href="' . stripslashes($event_button->event_button_link) . '" ' ;
