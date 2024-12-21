@@ -168,6 +168,9 @@ if (!empty($_POST)) {
                                 </div>
                         <?php } ?>
                     </div>
+                    <!--I tried commenting the next two items out, but saves stopped working -->
+                    <label for="ia-email-footer-signup" style="display:none;">Footer Sign-Up Text</label>
+                    <input type="text" name="ia-email-footer-signup" id="ia-email-footer-signup" value="<?php echo esc_attr(stripslashes(ia_email_get('footer_signup'))); ?>" style="display:none;"></input>
                     <label for="ia-email-footer-socials">Footer</label>
                     <?php
                     wp_editor(
@@ -294,10 +297,10 @@ if (!empty($_POST)) {
                                 Let us know! It could be featured in our next newsletter.<br/>
                                 <span style="margin: 0px 0px 0px 0px; font-family: Arial,sans-serif;">
                                     <nobr>
-                                        <a href="https://www.indyambassadors.org/events/community/add" style="background: #ffffff; border: 3px solid #8dc1d6; text-decoration: none; padding: 6px 4px; margin: 6px 0px 0px 0px; color: #000000; border-radius: 3px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><span style="mso-text-raise: 8pt; font-weight: bold;">Submit an Event</span></a>
-                                        <a href="https://www.indyambassadors.org/add-ongoing/" style="background: #ffffff; border: 3px solid #8dc1d6; text-decoration: none; padding: 6px 4px; margin: 6px 0px 0px 4px; color: #000000; border-radius: 3px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><span style="mso-text-raise: 8pt; font-weight: bold;">Submit Ongoing Opportunity</span></a>
-                                        <a href="mailto:volunteeradmin@indyambassadors.org" style="background: #ffffff; border: 3px solid #8dc1d6; text-decoration: none; padding: 6px 4px; margin: 6px 0px 0px 4px; color: #000000; border-radius: 3px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><span style="mso-text-raise: 8pt; font-weight: bold;">Email the Team</span></a>
+                                    <a href="https://www.indyambassadors.org/events/community/add" style="background: #ffffff; border: 3px solid #8dc1d6; text-decoration: none; padding: 6px 4px; margin: 6px 0px 0px 0px; color: #000000; border-radius: 3px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><span style="mso-text-raise: 8pt; font-weight: bold;">Submit an Event</span></a>
+                                    <a href="https://www.indyambassadors.org/add-ongoing/" style="background: #ffffff; border: 3px solid #8dc1d6; text-decoration: none; padding: 6px 4px; margin: 6px 0px 0px 4px; color: #000000; border-radius: 3px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><span style="mso-text-raise: 8pt; font-weight: bold;">Ongoing Opportunity</span></a>
                                     </nobr>
+                                    <a href="mailto:volunteeradmin@indyambassadors.org" style="background: #ffffff; border: 3px solid #8dc1d6; text-decoration: none; padding: 6px 4px; margin: 6px 0px 0px 4px; color: #000000; border-radius: 3px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><span style="mso-text-raise: 8pt; font-weight: bold;">Email Us</span></a>
                                 </span>
                             </td></tr>
                             <tr style="text-align:center">
