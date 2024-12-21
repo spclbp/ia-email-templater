@@ -294,13 +294,10 @@ if (!empty($_POST)) {
 
                             <tr style="background-color: WhiteSmoke;text-align:center"><td>
                                 <h3 style="margin-bottom:0px;">Are we missing any volunteer opportunities?</h3>
-                                Let us know! It could be featured in our next newsletter.<br/>
-                                <span style="margin: 0px 0px 0px 0px; font-family: Arial,sans-serif;">
-                                    <nobr>
-                                    <a href="https://www.indyambassadors.org/events/community/add" style="background: #ffffff; border: 3px solid #8dc1d6; text-decoration: none; padding: 6px 4px; margin: 6px 0px 0px 0px; color: #000000; border-radius: 3px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><span style="mso-text-raise: 8pt; font-weight: bold;">Submit an Event</span></a>
-                                    <a href="https://www.indyambassadors.org/add-ongoing/" style="background: #ffffff; border: 3px solid #8dc1d6; text-decoration: none; padding: 6px 4px; margin: 6px 0px 0px 4px; color: #000000; border-radius: 3px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><span style="mso-text-raise: 8pt; font-weight: bold;">Ongoing Opportunity</span></a>
-                                    </nobr>
-                                    <a href="mailto:volunteeradmin@indyambassadors.org" style="background: #ffffff; border: 3px solid #8dc1d6; text-decoration: none; padding: 6px 4px; margin: 6px 0px 0px 4px; color: #000000; border-radius: 3px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;"><span style="mso-text-raise: 8pt; font-weight: bold;">Email Us</span></a>
+                                Let us know! It could be featured in our next newsletter. Submit
+                                    <a href="https://www.indyambassadors.org/events/community/add">an event</a>,
+                                    <a href="https://www.indyambassadors.org/add-ongoing/" >an ongoing opportunity</a>, or
+                                    <a href="mailto:volunteeradmin@indyambassadors.org">email us.</a>
                                 </span>
                             </td></tr>
                             <tr style="text-align:center">
