@@ -168,9 +168,7 @@ if (!empty($_POST)) {
                                 </div>
                         <?php } ?>
                     </div>
-                    <label for="ia-email-footer-signup">Footer Sign-Up Text</label>
-                    <input type="text" name="ia-email-footer-signup" id="ia-email-footer-signup" value="<?php echo esc_attr(stripslashes(ia_email_get('footer_signup'))); ?>"></input>
-                    <label for="ia-email-footer-socials">Footer Social Links</label>
+                    <label for="ia-email-footer-socials">Footer</label>
                     <?php
                     wp_editor(
                         stripslashes(ia_email_get('footer_socials')),
@@ -304,7 +302,6 @@ if (!empty($_POST)) {
                             </td></tr>
                             <tr style="text-align:center">
                                 <td>
-                                    <!--p>?php echo stripslashes(ia_email_get('footer_signup')); ?</p-->
                                     <p><?php echo stripslashes(ia_email_get('footer_socials')); ?></p>
                                 </td>
                             </tr>
