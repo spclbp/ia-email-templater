@@ -294,7 +294,7 @@ if (!empty($_POST)) {
 
                             <tr style="background-color: WhiteSmoke;text-align:center"><td>
                                 <h3 style="margin-bottom:0px;">Are we missing any volunteer opportunities?</h3>
-                                Let us know! It could be featured in our next newsletter. Submit
+                                Let us know! It could be featured in our next newsletter.<br/>Submit
                                     <a href="https://www.indyambassadors.org/events/community/add">an event</a>,
                                     <a href="https://www.indyambassadors.org/add-ongoing/" >an ongoing opportunity</a>, or
                                     <a href="mailto:volunteeradmin@indyambassadors.org">email us.</a>
