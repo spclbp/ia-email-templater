@@ -307,3 +307,23 @@ function ia_email_get_buttons($email_id)
     );
     return $result;
 }
+
+function ia_email_get_buttons_html($event_id)
+{
+    $result = '';
+    $event_buttons = ia_email_get_buttons($event_id);
+    if (!empty($event_buttons[0]->event_button_text)) {
+        $result .= '<span style="margin: 0px 0px 10px 0px; font-family: Arial,sans-serif; float: right;"><nobr>';
+        $left_margin = '0px';
+        foreach ($event_buttons as $event_button) { 
+            $result .= '<a href="' . stripslashes($event_button->event_button_link) . '" ' ;
+            $result .= 'style="background: #ffffff; border: 4px solid #8dc1d6; text-decoration: none; padding: 10px 8px; ';
+            $result .= 'margin: 10px 0px 0px ' . $left_margin . '; ';
+            $result .= 'color: #000000; border-radius: 4px; display: inline-block; mso-padding-alt: 0; text-underline-color: #ffffff;">';
+            $result .= '<span style="mso-text-raise: 10pt; font-weight: bold;">' . stripslashes($event_button->event_button_text) . '</span></a>';
+            $left_margin = "4px";
+        }
+        $result .='</nobr></span>';
+    };
+    return $result;
+}
