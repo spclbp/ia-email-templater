@@ -55,6 +55,7 @@ if (!empty($_POST)) {
                                     <div class="ia-email-events-row-header">
                                         <h3 class="ia-email-events-row-header-text">Event Row</h3>
                                         <p class="ia-email-events-row-header-label"><?php echo esc_html(stripslashes($event->event_header_text)); ?></p>
+                                        <input type="hidden" name="ia-email-events[][event-id]" value="<?php echo $event->id; ?>"></input>
                                         <div class="ia-email-events-row-buttons">
                                             <button class="ia-email-button-small ia-email-move-down"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-down-solid.svg'; ?>" alt="Move Down" title="Move Down"></button>
                                             <button class="ia-email-button-small ia-email-move-up"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-up-solid.svg'; ?>" alt="Move Up" title="Move Up"></button>
@@ -105,6 +106,7 @@ if (!empty($_POST)) {
                                             <div class="ia-email-event-image-wrapper">
                                                 <img src="" alt="Event Image Preview" class="ia-email-event-image-preview">
                                                 <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="">
+                                                <input type="hidden" name="ia-email-events[][event-image-image-id][]" class="ia-email-event-image-image-id" value="">
                                                 <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
                                             </div>
                                             <?php
@@ -112,7 +114,8 @@ if (!empty($_POST)) {
                                             foreach ($event_imgs as $event_img) { ?>
                                                 <div class="ia-email-event-image-wrapper">
                                                     <img src="<?php echo wp_get_attachment_image_url($event_img->event_img_id, 'full'); ?>" alt="Event Image Preview" class="ia-email-event-image-preview">
-                                                    <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="<?php echo $event_img->event_img_id; ?>">
+                                                    <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="<?php echo $event_img->id; ?>">
+                                                    <input type="hidden" name="ia-email-events[][event-image-image-id][]" class="ia-email-event-image-image-id" value="<?php echo $event_img->event_img_id; ?>">
                                                     <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
                                                 </div>
                                         <?php
@@ -151,6 +154,7 @@ if (!empty($_POST)) {
                                             foreach ($event_buttons as $event_button) { ?>
                                                 <div class="ia-email-event-button-wrapper">
                                                     <div class="ia-email-event-button-inputs">
+                                                        <input type="hidden" name="ia-email-events[][event-button][id][]"  value="<?php echo $event_button->id; ?>"></input>
                                                         <label for="ia-email-event-button-text">Event Row Button Text</label>
                                                         <input type="text" name="ia-email-events[][event-button][text][]" value="<?php echo stripslashes($event_button->event_button_text); ?>"></input>
                                                         <label for="ia-email-event-link">Event Row Button Link</label>
