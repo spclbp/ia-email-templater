@@ -17,7 +17,7 @@ if (!empty($_POST)) {
             <h3 class="ia-email-templater-header">Newsletter Content</h3>
             <form method="post" action="<?php echo the_permalink(); ?>">
                 <div class="ia-email-admin-inputs-left-text">
-                    <label for="ia-email-header-iamge">Header Image</label>
+                    <label for="ia-email-header-image">Header Image</label>
                     <div class="ia-email-header-image-wrapper">
                         <img src="<?php echo wp_get_attachment_image_url(ia_email_get('header_image_id'), 'full'); ?>" alt="Header Image Preview" class="ia-email-header-image">
                         <input type="hidden" name="ia-email-header-image" class="ia-email-header-image-id" value="<?php echo ia_email_get('header_image_id'); ?>">
@@ -98,7 +98,7 @@ if (!empty($_POST)) {
                                             </label>
                                         </div>
                                         <label for="ia-email-event-header">Event Row Header</label>
-                                        <input type="text" name="ia-email-events[][event-header]" value="<?php echo esc_html(stripslashes($event->event_header_text)); ?>"></input>
+                                        <input type="text" name="ia-email-events[][event-header]" class="event-row-header" value="<?php echo esc_html(stripslashes($event->event_header_text)); ?>"></input>
                                         <label for="ia-email-event-image">Event Row Image</label>
                                         <?php
                                         $event_imgs = ia_email_get_imgs($event->id);

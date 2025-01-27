@@ -57,6 +57,7 @@ function ia_email_install()
             id int NOT NULL AUTO_INCREMENT,
             email_id int NOT NULL,
             tec_event_id int NOT NULL,
+            event_position int NOT NULL,
             event_minimized varchar(4) DEFAULT 'no' NOT NULL,
             event_featured varchar(4) DEFAULT 'off' NOT NULL,
             event_two_imgs varchar(4) DEFAULT 'off' NOT NULL,
@@ -239,13 +240,17 @@ function ia_email_post($post)
         ["event-featured"]=> string(2) "on" 
         ["event-mute"]=> string(2) "on" 
         ["event-header"]=> string(79) "500 Festival 3-Miler Course Marshal" 
-        ["event-image-id"]=> array(1) { 
-            [0]=> string(5) "22485" 
+        ["images"]=> array(2) { 
+            [0]=> array(2) { 
+                ["event-image-id"]=> string(3) "170" 
+                ["event-image-image-id"]=> string(5) "22204" 
+            } 
+            [1]=> array(2) { 
+                ["event-image-id"]=> string(0) "" 
+                ["event-image-image-id"]=> string(5) "22557" 
+            } 
         } 
         ["event-text"]=> string(303) "Provide crowd support and directional assistance..." 
-
-        ["event-button"]=> array(3) { ["id"]=> array(1) { [0]=> string(1) "1" } ["text"]=> array(1) { [0]=> string(9) "Volunteer" } ["link"]=> array(1) { [0]=> string(23) "https://www.example.com" } } } }
-
         ["event-button"]=> array(3) { 
             ["id"]=> array(3) { 
                 [0]=> string(3) "788" 
@@ -264,7 +269,12 @@ function ia_email_post($post)
             } 
         } 
     } */
+    $event_position=1;
     for ($i = 0; $i < count($events); $i++) {
+        if ($events[$i]['event-header'] != 'delete') {
+            $events[$i]['event-position'] = $event_position++;
+            print 'position' . $events[$i]['event-position'] . ' ';
+        }
         if (!array_key_exists('event-featured', $events[$i])) {
             $events[$i]['event-featured'] = 'off';
         }
@@ -302,29 +312,45 @@ function ia_email_post($post)
     foreach ($the_events as $event) {
         if (!empty($event)) {
             if (!empty($event['event-id'])) {
-                //TODO: delete if so indicated
                 $event_id = $event['event-id'];
-                $wpdb->update(
-                    $table_events,
-                    array(
-                        'email_id' => $last_id,
-                        'tec_event_id' => $event['tec-dropdown'],
-                        'event_minimized' => $event['event-minimized'],
-                        'event_featured' => $event['event-featured'],
-                        'event_two_imgs' => $event['event-two-imgs'],
-                        'event_divider' => $event['event-divider'],
-                        'event_mute' => $event['event-mute'],
-                        'event_header_text' => $event['event-header'],
-                        'event_text' => $event['event-text']
-                    ),
-                    array('id' => $event_id)
-                );
+                if ($event['event-header'] == 'delete') {
+                    $wpdb->delete(
+                        $table_event_buttons,
+                        array('event_id' => $event_id)
+                    );
+                    $wpdb->delete(
+                        $table_event_imgs,
+                        array('event_id' => $event_id)
+                    );
+                    $wpdb->delete(
+                        $table_events,
+                        array('id' => $event_id)
+                    );
+                } else {
+                    $wpdb->update(
+                        $table_events,
+                        array(
+                            'email_id' => $last_id,
+                            'tec_event_id' => $event['tec-dropdown'],
+                            'event_position' => $event['event-position'],
+                            'event_minimized' => $event['event-minimized'],
+                            'event_featured' => $event['event-featured'],
+                            'event_two_imgs' => $event['event-two-imgs'],
+                            'event_divider' => $event['event-divider'],
+                            'event_mute' => $event['event-mute'],
+                            'event_header_text' => $event['event-header'],
+                            'event_text' => $event['event-text']
+                        ),
+                        array('id' => $event_id)
+                    );
+                };
             } else {
                 $wpdb->insert(
                     $table_events,
                     array(
                         'email_id' => $last_id,
                         'tec_event_id' => $event['tec-dropdown'],
+                        'event_position' => $event['event-position'],
                         'event_minimized' => $event['event-minimized'],
                         'event_featured' => $event['event-featured'],
                         'event_two_imgs' => $event['event-two-imgs'],
@@ -409,7 +435,8 @@ function ia_email_get($var)
     if ($var == 'events') {
         $result = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM $table_events WHERE email_id = (SELECT MAX(email_id) FROM $table_events)"
+                //"SELECT * FROM $table_events WHERE email_id = (SELECT MAX(email_id) FROM $table_events)"
+                "SELECT * FROM $table_events WHERE email_id = 1 ORDER BY event_position ASC"
             )
         );
     } else {

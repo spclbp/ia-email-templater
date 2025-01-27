@@ -84,7 +84,7 @@ addEventListener('DOMContentLoaded', () => {
 
         let rows = document.querySelectorAll('.ia-email-events-row')
         let headerImageButton = document.querySelector('.ia-email-select-image-header')
-        initSelectImage(headerImageButton)
+        initSelectHeaderImage(headerImageButton)
 
 
         for (let [i, row] of rows.entries()) {
@@ -114,12 +114,12 @@ addEventListener('DOMContentLoaded', () => {
                 isMinimized.value = "no"
             })
 
-
-
             selectRemoveButton.addEventListener('click', (e) => {
                 e.preventDefault()
                 if (i > 0) {
-                    selectRemoveButton.parentNode.parentNode.parentNode.remove()
+                    //selectRemoveButton.parentNode.parentNode.parentNode.remove()
+                    selectRemoveButton.parentNode.parentNode.parentNode.querySelector('.event-row-header').value = 'delete';
+                    selectRemoveButton.parentNode.parentNode.parentNode.style.display = 'none';
                 }
             })
 
@@ -311,11 +311,41 @@ addEventListener('DOMContentLoaded', () => {
 
             file_frame.on('select', function () {
                 attachment = file_frame.state().get('selection').first().toJSON()
-                //alert(attachment.url);
-                //el.previousElementSibling.previousElementSibling.src = attachment.url
-                //el.previousElementSibling.value = attachment.id
                 el.parentElement.getElementsByClassName("ia-email-event-image-preview")[0].src = attachment.url
                 el.parentElement.getElementsByClassName("ia-email-event-image-image-id")[0].value = attachment.id
+                wp.media.model.settings.post.id = wp_media_post_id
+            })
+            file_frame.open()
+        })
+    }
+
+    function initSelectHeaderImage(el) {
+        let file_frame
+        let wp_media_post_id = wp.media.model.settings.post.id
+        let set_to_post_id = el.previousElementSibling.value
+        el.addEventListener('click', (e) => {
+            e.preventDefault()
+
+            if (file_frame) {
+                file_frame.uploader.uploader.param('post_id', set_to_post_id)
+                file_frame.open()
+                return
+            } else {
+                wp.media.model.settings.post.id = set_to_post_id
+            }
+
+            file_frame = wp.media.frames.file_frame = wp.media({
+                title: 'Select a image to upload',
+                button: {
+                    text: 'Use this image',
+                },
+                multiple: false
+            })
+
+            file_frame.on('select', function () {
+                attachment = file_frame.state().get('selection').first().toJSON()
+                el.previousElementSibling.previousElementSibling.src = attachment.url
+                el.previousElementSibling.value = attachment.id
                 wp.media.model.settings.post.id = wp_media_post_id
             })
             file_frame.open()
