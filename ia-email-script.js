@@ -159,7 +159,9 @@ addEventListener('DOMContentLoaded', () => {
                 e.addEventListener('click', (f) => {
                     f.preventDefault()
                     if (i > 0) {
-                        e.parentElement.parentElement.remove()
+                        //e.parentElement.parentElement.remove()
+                        e.parentElement.parentElement.querySelector('.event-button-text').value = 'delete';
+                        e.parentElement.parentElement.style.display = 'none';
                     }
                 })
             })

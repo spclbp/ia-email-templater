@@ -140,7 +140,7 @@ if (!empty($_POST)) {
                                             <div class="ia-email-event-button-wrapper">
                                                 <div class="ia-email-event-button-inputs">
                                                     <label for="ia-email-event-button-text">Event Row Button Text</label>
-                                                    <input type="text" name="ia-email-events[][event-button][text][]" value="Volunteer"></input>
+                                                    <input type="text" name="ia-email-events[][event-button][text][]" class="event-button-text" value="Volunteer"></input>
                                                     <label for="ia-email-event-link">Event Row Button Link</label>
                                                     <input type="text" name="ia-email-events[][event-button][link][]" value="https://www.example.com"></input>
                                                 </div>
@@ -156,7 +156,7 @@ if (!empty($_POST)) {
                                                     <div class="ia-email-event-button-inputs">
                                                         <input type="hidden" name="ia-email-events[][event-button][id][]"  value="<?php echo $event_button->id; ?>"></input>
                                                         <label for="ia-email-event-button-text">Event Row Button Text</label>
-                                                        <input type="text" name="ia-email-events[][event-button][text][]" value="<?php echo stripslashes($event_button->event_button_text); ?>"></input>
+                                                        <input type="text" name="ia-email-events[][event-button][text][]"  class="event-button-text" value="<?php echo stripslashes($event_button->event_button_text); ?>"></input>
                                                         <label for="ia-email-event-link">Event Row Button Link</label>
                                                         <input type="text" name="ia-email-events[][event-button][link][]" value="<?php echo stripslashes($event_button->event_button_link); ?>"></input>
                                                     </div>
