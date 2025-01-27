@@ -169,10 +169,7 @@ function ia_email_post($post)
     // instead of all events, this will become a list of changing events?
     $events = [];
     $index = 0;
-    //print "\n\n\n\n\n"
-    //printf("\n\n\n\n\n\n");
-    echo var_dump($post['ia-email-events']);
-    echo "-----------------";
+    //echo var_dump($post['ia-email-events']);
     /* $post['ia-email-events'] is a very flat array that includes a key and a value for each component of 
        every volunteer event. Event relationship is derived from the order of the array components. 
        Here's an example of one event from that array.
@@ -227,12 +224,7 @@ function ia_email_post($post)
             $events[$index][key($v)] = $v[key($v)];
         }
     }
-    //echo "hello!!!!!!!!";
-    //print "HEEYYY!";
     //print var_dump($events);
-    //print var_dump($events);
-    //print var_dump($events);
-    print var_dump($events);
     /* Post loop processing the same event has a single, complex structure
     [12]=> array(8) { 
         ["event-minimized"]=> string(3) "yes" 
