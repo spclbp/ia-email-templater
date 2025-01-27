@@ -48,11 +48,11 @@ addEventListener('DOMContentLoaded', () => {
                 elHeader.value = data.title
                 if (elImages.length > 1) {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = data.image.url
-                    elImages[0].querySelector('.ia-email-event-image-id').value = data.image.id
+                    elImages[0].querySelector('.ia-email-event-image-image-id').value = data.image.id
                     elImages[1].remove()
                 } else {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = data.image.url
-                    elImages[0].querySelector('.ia-email-event-image-id').value = data.image.id
+                    elImages[0].querySelector('.ia-email-event-image-image-id').value = data.image.id
                 }
                 elTwoImages.checked = false
                 elText.value = data.description
@@ -64,11 +64,11 @@ addEventListener('DOMContentLoaded', () => {
             elHeader.value = ''
             if (elImages.length > 1) {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
-                elImages[0].querySelector('.ia-email-event-image-id').value = ''
+                elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
                 elImages[1].remove()
             } else {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
-                elImages[0].querySelector('.ia-email-event-image-id').value = ''
+                elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
             }
             elTwoImages.checked = false
             elText.value = ''
@@ -130,6 +130,8 @@ addEventListener('DOMContentLoaded', () => {
                 const imgWrapClone = imgWrap.cloneNode(true)
                 if (selectMultiImage.checked) {
                     imgWrap.after(imgWrapClone)
+                    imgWrapClone.querySelector('.ia-email-event-image-id').value = ''
+                    imgWrapClone.querySelector('.ia-email-event-image-preview').src = ''
                     initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
                 } else {
                     imgWrap.nextElementSibling.remove()
@@ -190,6 +192,10 @@ addEventListener('DOMContentLoaded', () => {
         emailEventsWrapper.append(el)
         el.querySelector('.ia-email-event-image-preview').src = ''
         el.querySelector('.ia-email-event-image-id').value = ''
+        //CLB 1/25/25 - incremental saves
+        el.querySelector('.ia-email-event-id').value = ''
+        el.querySelector('.ia-email-event-image-image-id').value = ''
+        //CLB 1/25/25 - incremental saves
 
         let imageButton = el.querySelector('.ia-email-select-image')
         let moveRowDownButton = el.querySelector('.ia-email-move-down')
@@ -305,8 +311,11 @@ addEventListener('DOMContentLoaded', () => {
 
             file_frame.on('select', function () {
                 attachment = file_frame.state().get('selection').first().toJSON()
-                el.previousElementSibling.previousElementSibling.src = attachment.url
-                el.previousElementSibling.value = attachment.id
+                //alert(attachment.url);
+                //el.previousElementSibling.previousElementSibling.src = attachment.url
+                //el.previousElementSibling.value = attachment.id
+                el.parentElement.getElementsByClassName("ia-email-event-image-preview")[0].src = attachment.url
+                el.parentElement.getElementsByClassName("ia-email-event-image-image-id")[0].value = attachment.id
                 wp.media.model.settings.post.id = wp_media_post_id
             })
             file_frame.open()

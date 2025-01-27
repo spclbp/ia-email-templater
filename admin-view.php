@@ -55,7 +55,7 @@ if (!empty($_POST)) {
                                     <div class="ia-email-events-row-header">
                                         <h3 class="ia-email-events-row-header-text">Event Row</h3>
                                         <p class="ia-email-events-row-header-label"><?php echo esc_html(stripslashes($event->event_header_text)); ?></p>
-                                        <input type="hidden" name="ia-email-events[][event-id]" value="<?php echo $event->id; ?>"></input>
+                                        <input type="hidden" name="ia-email-events[][event-id]"  class="ia-email-event-id" value="<?php echo $event->id; ?>"></input>
                                         <div class="ia-email-events-row-buttons">
                                             <button class="ia-email-button-small ia-email-move-down"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-down-solid.svg'; ?>" alt="Move Down" title="Move Down"></button>
                                             <button class="ia-email-button-small ia-email-move-up"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-up-solid.svg'; ?>" alt="Move Up" title="Move Up"></button>
@@ -104,8 +104,8 @@ if (!empty($_POST)) {
                                         $event_imgs = ia_email_get_imgs($event->id);
                                         if (empty($event_imgs)) { ?>
                                             <div class="ia-email-event-image-wrapper">
+                                            <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="">
                                                 <img src="" alt="Event Image Preview" class="ia-email-event-image-preview">
-                                                <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="">
                                                 <input type="hidden" name="ia-email-events[][event-image-image-id][]" class="ia-email-event-image-image-id" value="">
                                                 <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
                                             </div>

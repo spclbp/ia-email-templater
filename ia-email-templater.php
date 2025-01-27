@@ -169,8 +169,9 @@ function ia_email_post($post)
     $events = [];
     $index = 0;
     //print "\n\n\n\n\n"
-    printf("\n\n\n\n\n\n");
-    //echo var_dump($post['ia-email-events']);
+    //printf("\n\n\n\n\n\n");
+    echo var_dump($post['ia-email-events']);
+    echo "-----------------";
     /* $post['ia-email-events'] is a very flat array that includes a key and a value for each component of 
        every volunteer event. Event relationship is derived from the order of the array components. 
        Here's an example of one event from that array.
@@ -180,6 +181,14 @@ function ia_email_post($post)
             [124]=> array(1) { ["event-mute"]=> string(2) "on" } 
             [125]=> array(1) { ["event-header"]=> string(79) "500 Festival 3-Miler Course Marshal" } 
             [126]=> array(1) { ["event-image-id"]=> array(1) { [0]=> string(5) "22485" } } 
+
+            [12?]=> array(1) { ["event-two-imgs"]=> string(2) "on" } 
+            [12?]=> array(1) { ["event-header"]=> string(11) "Third Event" } 
+            [12?]=> array(1) { ["event-image-id"]=> array(1) { [0]=> string(1) "1" } } 
+            [12?]=> array(1) { ["event-image-image-id"]=> array(1) { [0]=> string(5) "22555" } } 
+            [12?]=> array(1) { ["event-image-id"]=> array(1) { [0]=> string(0) "" } }           <--- a new secondary image added
+            [12?]=> array(1) { ["event-image-image-id"]=> array(1) { [0]=> string(5) "22339" } } 
+
             [127]=> array(1) { ["event-text"]=> string(303) "Provide crowd support and directional assistance..." } 
             [12?]=> array(1) { ["event-button"]=> array(1) { ["id"]=> array(1) { [0]=> string(3) "788" } } }
             [128]=> array(1) { ["event-button"]=> array(1) { ["text"]=> array(1) { [0]=> string(9) "Volunteer" } } } 
@@ -192,16 +201,22 @@ function ia_email_post($post)
             [133]=> array(1) { ["event-button"]=> array(1) { ["link"]=> array(1) { [0]=> string(24) "https://500festival.com/" } } } 
     The following loop builds assembles the components into a comprehensive event object.
     $k is the key of an object in the array and $v is the value (an object) */
+    $img_index = -1;
     foreach ($post['ia-email-events'] as $k => $v) {
         if (!empty($events)) {
-            //
-            if (array_key_exists('event-image-id', $events[$index]) && key($v) == 'event-image-id') {
-                $events[$index]['event-image-id'] = array_merge($events[$index]['event-image-id'], $v[key($v)]);
+            if (key($v) == 'event-image-id') {
+                $img_index++;
+                $events[$index]['images'][$img_index]["event-image-id"] = $v[key($v)][0];
+            } elseif (key($v) == 'event-image-image-id') {
+                $events[$index]['images'][$img_index]['event-image-image-id'] = $v[key($v)][0];
+                //$events[$index]['images'][$img_index]->eventImageImageId=$v[key($v)];
             } elseif (array_key_exists('event-button', $events[$index]) && key($v) == 'event-button') {
                 $events[$index]['event-button'] = array_merge_recursive($events[$index]['event-button'], $v[key($v)]);
             } elseif (array_key_exists(key($v), $events[$index])) {
                 $index++;
                 $events[$index][key($v)] = $v[key($v)];
+                $events[$index]['images'] = [];
+                $img_index = -1;
             } else {
                 $events[$index][key($v)] = $v[key($v)];
             }
@@ -321,31 +336,56 @@ function ia_email_post($post)
                  );
                 $event_id = $wpdb->insert_id;
             }
-                        
-            /*foreach ($event['event-image-id'] as $event_img) {
-                $wpdb->insert(
-                    $table_event_imgs,
-                    array(
-                        'event_id' => $event_id,
-                        'event_img_id' => $event_img
-                    )
-                );
+            
+            for ($i = 0; $i < count($event['images']); $i++) {
+                print 'image number: ' . $event['images'][$i]['event-image-id'];
+                print 'image image number: ' . $event['images'][$i]['event-image-image-id'];
+                if (!empty($event['images'][$i]['event-image-id'])) {
+                    if ((empty($event['images'][$i]['event-image-image-id'])) || ($event['images'][$i]['event-image-image-id'] == 0)) {
+                        $wpdb->delete(
+                            $table_event_imgs,
+                            array('id' => $event['images'][$i]['event-image-id'])
+                        );
+                    } else {
+                        $wpdb->update(
+                            $table_event_imgs,
+                            array(
+                                'event_img_id' => $event['images'][$i]['event-image-image-id'],
+                            ),
+                            array('id' => $event['images'][$i]['event-image-id'])
+                        );
+                    }
+                } elseif ((!empty($event['images'][$i]['event-image-image-id'])) && ($event['images'][$i]['event-image-image-id'] > 0)) {
+                    $wpdb->insert(
+                        $table_event_imgs,
+                        array(
+                            'event_id' => $event_id,
+                            'event_img_id' => $event['images'][$i]['event-image-image-id']
+                        )
+                    );
+                }
             }
-            */
+
             for ($i = 0; $i < count($event['event-button']['text']); $i++) {
                 //print "button id: " . $event['event-button']['id'][$i]; 
                 if (!empty($event['event-button']['id'][$i])) {
-                    //TODO: delete if so indicated
-                    $wpdb->update(
-                        $table_event_buttons,
-                        array(
-                            'event_id' => $event_id,
-                            'event_button_text' => $event['event-button']['text'][$i],
-                            'event_button_link' => $event['event-button']['link'][$i]
-                        ),
-                        array('id' => $event['event-button']['id'][$i])
-                    );
-                } else {
+                    if ($event['event-button']['text'][$i] == 'delete') {
+                        $wpdb->delete(
+                            $table_event_buttons,
+                            array('id' => $event['event-button']['id'][$i])
+                        );
+                    } else {
+                        $wpdb->update(
+                            $table_event_buttons,
+                            array(
+                                'event_id' => $event_id,
+                                'event_button_text' => $event['event-button']['text'][$i],
+                                'event_button_link' => $event['event-button']['link'][$i]
+                            ),
+                            array('id' => $event['event-button']['id'][$i])
+                        );
+                    }
+                } elseif ($event['event-button']['text'][$i] != 'delete') {
                     $wpdb->insert(
                         $table_event_buttons,
                         array(
