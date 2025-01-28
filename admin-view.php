@@ -47,14 +47,20 @@ if (!empty($_POST)) {
                         foreach ($events as $key => $event) {
                             if ($event->event_minimized == "no") { ?>
                                 <div class="ia-email-events-row">
-                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="no"></input>
-                                    <?php } else { ?>
+                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="no"></input> <?php 
+                            } else { ?>
                                  <div class="ia-email-events-row ia-email-events-row-hide">
-                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="yes"></input>
-                                <?php } ?>
+                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="yes"></input> <?php 
+                            } ?>
                                     <div class="ia-email-events-row-header">
-                                        <h3 class="ia-email-events-row-header-text">Event Row</h3>
-                                        <p class="ia-email-events-row-header-label"><?php echo esc_html(stripslashes($event->event_header_text)); ?></p>
+                                        <h3 class="ia-email-events-row-header-text">Row</h3>
+                                        <p class="ia-email-events-row-header-label"> <?php 
+                                            if (!empty($event->event_header_text)) {
+                                                echo esc_html(stripslashes($event->event_header_text));
+                                            } else {
+                                                echo esc_html(substr(stripslashes($event->event_text),0,60) . "...");
+                                            } ?>
+                                        </p>
                                         <input type="hidden" name="ia-email-events[][event-id]"  class="ia-email-event-id" value="<?php echo $event->id; ?>"></input>
                                         <div class="ia-email-events-row-buttons">
                                             <button class="ia-email-button-small ia-email-move-down"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-down-solid.svg'; ?>" alt="Move Down" title="Move Down"></button>
@@ -84,6 +90,11 @@ if (!empty($_POST)) {
                                             <label class="ia-email-events-prop">
                                                 Two Images
                                                 <input type="checkbox" name="ia-email-events[][event-two-imgs]" <?php if ($event->event_two_imgs == 'on') { ?> checked <?php } ?>></input>
+                                                <span class="slider"></span>
+                                            </label>
+                                            <label class="ia-email-events-prop">
+                                                Image Right
+                                                <input type="checkbox" name="ia-email-events[][event-img-right]" <?php if ($event->event_img_right == 'on') { ?> checked <?php } ?>></input>
                                                 <span class="slider"></span>
                                             </label>
                                             <label class="ia-email-events-prop">
@@ -242,12 +253,13 @@ if (!empty($_POST)) {
                                             $event_image1_url=wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full');
                                             
                                             $event_buttons_html = ia_email_get_buttons_html($event->id);
+                                            $float_direction = ($event->event_img_right == 'on') ? 'right' : 'left';
                                             if (count($event_imgs) > 1) { ?>
                                                 <div>
                                                     <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="23%" alt="" 
-                                                    style="display: inline; width: 32%; max-width: 99px; height: auto; float: left; margin: 0px 0px 2px 2px;" />
+                                                    style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 0px 2px 2px;" />
                                                     <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="23%" alt="" 
-                                                    style="display: inline; width: 32%; max-width: 99px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
+                                                    style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
                                                     <?php echo $event_text;  ?>
                                                 </div>
                                                 <?php
@@ -256,11 +268,11 @@ if (!empty($_POST)) {
                                                 if (count($event_words) > 75) {
                                                     echo implode(" ", array_slice($event_words,0,18)); ?>
                                                     <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
-                                                        style="display: block; width: 65%; max-width: 200px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
+                                                        style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
                                                     <?php echo implode(" ", array_slice($event_words, 18)); 
                                                 } else { ?>
                                                     <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
-                                                        style="display: block; width: 65%; max-width: 200px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
+                                                        style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
                                                     <?php echo $event_text;    
                                                 }
                                             } else { 

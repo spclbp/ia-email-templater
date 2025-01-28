@@ -396,7 +396,7 @@ addEventListener('DOMContentLoaded', () => {
     function handleDivider(el) {
         const parentEl = el.parentElement.parentElement.parentElement.parentElement
         if (el.checked) {
-            parentEl.querySelector('.ia-email-events-row-header-label').textContent = 'Divider'
+            parentEl.querySelector('.ia-email-events-row-header-label').textContent = 'Divider: ' + parentEl.querySelector('.event-row-header').value;
             parentEl.querySelector('.ia-email-events-get-tec').style.display = 'none'
             parentEl.querySelector('.ia-email-tec-dropdown').value = 'none'
             parentEl.querySelector('[for="ia-email-event-image"]').style.display = 'none'

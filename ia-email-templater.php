@@ -2,10 +2,11 @@
 /*
 Plugin Name: Indy Ambassadors Email Templater
 Description: A custom plugin for generating the weekly newsletter by Indy Ambassadors. Requires The Events Calendar Plugin.
-Version: 1.9
+Version: 1.9.1
 Requires at least: 6.0
 Requires PHP: 5.6
 Author: Josh Klein
+Contributor: Chris Blair
 Author URI: https://jklein.me
 */
 
@@ -44,6 +45,7 @@ function ia_email_install()
 	    	id int NOT NULL AUTO_INCREMENT,
             header_image_id int NOT NULL,
 	    	header_text text NOT NULL,
+	    	preview_text text NOT NULL,          
 	    	intro_paragraph text NOT NULL,
             intro_signature text NOT NULL,
             footer_signup text NOT NULL,
@@ -61,7 +63,7 @@ function ia_email_install()
             event_minimized varchar(4) DEFAULT 'no' NOT NULL,
             event_featured varchar(4) DEFAULT 'off' NOT NULL,
             event_two_imgs varchar(4) DEFAULT 'off' NOT NULL,
-            event_img_float varchar(5) DEFAULT 'left' NOT NULL,
+            event_img_right varchar(4) DEFAULT 'off' NOT NULL,
             event_divider varchar(4) DEFAULT 'off' NOT NULL,
             event_mute varchar(4) DEFAULT 'off' NOT NULL,
             event_header_text varchar(256) DEFAULT '' NOT NULL,
@@ -106,6 +108,7 @@ function ia_email_install_data()
         array(
             'header_image_id' => '',
             'header_text' => 'Example Header',
+            'preview_text' => 'Exmaple Preview Text',
             'intro_paragraph' => 'Initial introduction paragraph.',
             'intro_signature' => 'FirstName LastName • RoleOrTitle',
             'footer_signup' => 'There are no fees to join the Indy Ambassadors. Sign up at <a title="https://indyambassadors.org/" href="https://indyambassadors.org/">indyambassadors.org</a>.',
@@ -123,8 +126,9 @@ function ia_email_install_data()
             'event_minimized' => 'no',
             'event_featured' => 'off',
             'event_two_imgs' => 'off',
+            'event_img_right' => 'off',
             'event_divider' => 'off',
-            'event_mute' => 'off',
+            'event_mute' => 'on',
             'event_header_text' => 'Initial Header',
             'event_text' => 'Initial event text.'
         )
@@ -273,14 +277,17 @@ function ia_email_post($post)
         if (!array_key_exists('event-two-imgs', $events[$i])) {
             $events[$i]['event-two-imgs'] = 'off';
         }
+        if (!array_key_exists('event-img-right', $events[$i])) {
+            $events[$i]['event-img-right'] = 'off';
+        }
         if (!array_key_exists('event-divider', $events[$i])) {
             $events[$i]['event-divider'] = 'off';
         }
         if (!array_key_exists('event-mute', $events[$i])) {
             $events[$i]['event-mute'] = 'off';
         }
-        if (!array_key_exists('event-img-float-direction', $events[$i])) {
-            $events[$i]['event-img-float-direction'] = 'left';
+        if (!array_key_exists('event-img-right', $events[$i])) {
+            $events[$i]['event-img-right'] = 'off';
         }
     }
     $the_events = $events;
@@ -300,7 +307,6 @@ function ia_email_post($post)
     //$last_id = $wpdb->insert_id;
     $last_id = 1;
 
-    //'event_img_float' => $event['event-img-float-direction'],
     foreach ($the_events as $event) {
         if (!empty($event)) {
             if (!empty($event['event-id'])) {
@@ -328,6 +334,7 @@ function ia_email_post($post)
                             'event_minimized' => $event['event-minimized'],
                             'event_featured' => $event['event-featured'],
                             'event_two_imgs' => $event['event-two-imgs'],
+                            'event_img_right' => $event['event-img-right'],
                             'event_divider' => $event['event-divider'],
                             'event_mute' => $event['event-mute'],
                             'event_header_text' => $event['event-header'],
@@ -346,6 +353,7 @@ function ia_email_post($post)
                         'event_minimized' => $event['event-minimized'],
                         'event_featured' => $event['event-featured'],
                         'event_two_imgs' => $event['event-two-imgs'],
+                        'event_img_right' => $event['event-img-right'],
                         'event_divider' => $event['event-divider'],
                         'event_mute' => $event['event-mute'],
                         'event_header_text' => $event['event-header'],
@@ -356,8 +364,8 @@ function ia_email_post($post)
             }
             
             for ($i = 0; $i < count($event['images']); $i++) {
-                print 'image number: ' . $event['images'][$i]['event-image-id'];
-                print 'image image number: ' . $event['images'][$i]['event-image-image-id'];
+                //print 'image number: ' . $event['images'][$i]['event-image-id'];
+                //print 'image image number: ' . $event['images'][$i]['event-image-image-id'];
                 if (!empty($event['images'][$i]['event-image-id'])) {
                     if ((empty($event['images'][$i]['event-image-image-id'])) || ($event['images'][$i]['event-image-image-id'] == 0)) {
                         $wpdb->delete(
