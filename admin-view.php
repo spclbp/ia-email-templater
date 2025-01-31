@@ -140,7 +140,7 @@ if (!empty($_POST)) {
                                             'ia-email-event-text-' . $key,
                                             array(
                                                 'media_buttons' => false,
-                                                'textarea_rows' => '6',
+                                                'textarea_rows' => '10',
                                                 'textarea_name' => 'ia-email-events[][event-text]'
                                             )
                                         );
@@ -244,9 +244,29 @@ if (!empty($_POST)) {
                                                     <?php echo $event_header;  ?>
                                                 </h3>
                                             </td></tr>
-                                        <?php } ?>
+                                        <?php } 
+                                        
+                                        // insert html codes to communicate paragraph and line breaks
+                                        if (!empty($event_text)) {
+                                            $event_paragraphs = preg_split('/(\r\n|\n|\r)/', $event_text);
+                                            $event_text = "";
 
-
+                                            for ($i = 0; $i < count($event_paragraphs); $i++) {
+                                                if (!empty($event_paragraphs[$i])) {
+                                                    if (($i + 1) < count($event_paragraphs)) {
+                                                        if (empty($event_paragraphs[$i + 1])) {
+                                                            $event_text .= '<p>' . $event_paragraphs[$i] . '</p>';
+                                                        } else {
+                                                            $event_text .= $event_paragraphs[$i] . '<br/>';
+                                                        }
+                                                    } else {
+                                                        $event_text .= $event_paragraphs[$i];
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        ?>
                                         <tr><td>
                                         <?php
                                             $event_imgs = ia_email_get_imgs($event->id);
@@ -318,7 +338,28 @@ if (!empty($_POST)) {
                             </td></tr>
                             <tr style="text-align:center">
                                 <td>
-                                    <p><?php echo stripslashes(ia_email_get('footer_socials')); ?></p>
+                                    <p><?php 
+                                        $footer_text = stripslashes(ia_email_get('footer_socials'));
+                                        // insert html codes to communicate paragraph and line breaks
+                                        if (!empty($footer_text)) {
+                                            $footer_paragraphs = preg_split('/(\r\n|\n|\r)/', $footer_text);
+                                            $footer_text = "";
+
+                                            for ($i = 0; $i < count($footer_paragraphs); $i++) {
+                                                if (!empty($footer_paragraphs[$i])) {
+                                                    if (($i + 1) < count($footer_paragraphs)) {
+                                                        if (empty($footer_paragraphs[$i + 1])) {
+                                                            $footer_text .= '<p>' . $footer_paragraphs[$i] . '</p>';
+                                                        } else {
+                                                            $footer_text .= $footer_paragraphs[$i] . '<br/>';
+                                                        }
+                                                    } else {
+                                                        $footer_text .= $footer_paragraphs[$i];
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        echo $footer_text; ?></p>
                                 </td>
                             </tr>
                         </tbody>
