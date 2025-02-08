@@ -218,6 +218,7 @@ if (!empty($_POST)) {
                                     <img src="<?php echo wp_get_attachment_url(ia_email_get('header_image_id')); ?>" width="100%" alt="" style="width: 100%; height: auto;" />
                                 </td>
                             </tr>
+                            <tr style="height: 16px;"><td></td></tr>
                             <?php
                             $row_num=0;
                             foreach ($events as $event) {
@@ -243,64 +244,61 @@ if (!empty($_POST)) {
                                                 <h3 style="margin-bottom:4px;">
                                                     <?php echo $event_header;  ?>
                                                 </h3>
-                                            </td></tr>
-                                        <?php } 
+                                            </td></tr> <?php 
+                                        } else {
                                         
-                                        // insert html codes to communicate paragraph and line breaks
-                                        if (!empty($event_text)) {
-                                            $event_paragraphs = preg_split('/(\r\n|\n|\r)/', $event_text);
-                                            $event_text = "";
+                                            // insert html codes to communicate paragraph and line breaks
+                                            if (!empty($event_text)) {
+                                                $event_paragraphs = preg_split('/(\r\n|\n|\r)/', $event_text);
+                                                $event_text = "";
 
-                                            for ($i = 0; $i < count($event_paragraphs); $i++) {
-                                                if (!empty($event_paragraphs[$i])) {
-                                                    if (($i + 1) < count($event_paragraphs)) {
-                                                        if (empty($event_paragraphs[$i + 1])) {
-                                                            $event_text .= '<p>' . $event_paragraphs[$i] . '</p>';
+                                                for ($i = 0; $i < count($event_paragraphs); $i++) {
+                                                    if (!empty($event_paragraphs[$i])) {
+                                                        if (($i + 1) < count($event_paragraphs)) {
+                                                            if (empty($event_paragraphs[$i + 1])) {
+                                                                $event_text .= '<p>' . $event_paragraphs[$i] . '</p>';
+                                                            } else {
+                                                                $event_text .= $event_paragraphs[$i] . '<br/>';
+                                                            }
                                                         } else {
-                                                            $event_text .= $event_paragraphs[$i] . '<br/>';
+                                                            $event_text .= $event_paragraphs[$i];
                                                         }
-                                                    } else {
-                                                        $event_text .= $event_paragraphs[$i];
                                                     }
                                                 }
-                                            }
+                                            } ?>
+                                            <tr><td> <?php
+                                                $event_imgs = ia_email_get_imgs($event->id);
+                                                $event_image1_url=wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full');
+                                                
+                                                $event_buttons_html = ia_email_get_buttons_html($event->id);
+                                                $float_direction = ($event->event_img_right == 'on') ? 'right' : 'left';
+                                                if (count($event_imgs) > 1) { ?>
+                                                    <div>
+                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="23%" alt="" 
+                                                        style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 0px 2px 2px;" />
+                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="23%" alt="" 
+                                                        style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo $event_text;  ?>
+                                                    </div>
+                                                    <?php
+                                                } elseif (!empty($event_image1_url)) { ?>
+                                                    <?php $event_words = preg_split('/\s+/', $event_text);
+                                                    if (count($event_words) > 75) {
+                                                        echo implode(" ", array_slice($event_words,0,18)); ?>
+                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
+                                                            style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo implode(" ", array_slice($event_words, 18)); 
+                                                    } else { ?>
+                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
+                                                            style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo $event_text;    
+                                                    }
+                                                } else { 
+                                                    echo $event_text;
+                                                } 
+                                                echo $event_buttons_html; ?>
+                                            </td></tr> <?php
                                         }
-                                        
-                                        ?>
-                                        <tr><td>
-                                        <?php
-                                            $event_imgs = ia_email_get_imgs($event->id);
-                                            $event_image1_url=wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full');
-                                            
-                                            $event_buttons_html = ia_email_get_buttons_html($event->id);
-                                            $float_direction = ($event->event_img_right == 'on') ? 'right' : 'left';
-                                            if (count($event_imgs) > 1) { ?>
-                                                <div>
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="23%" alt="" 
-                                                    style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 0px 2px 2px;" />
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="23%" alt="" 
-                                                    style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
-                                                    <?php echo $event_text;  ?>
-                                                </div>
-                                                <?php
-                                            } elseif (!empty($event_image1_url)) { ?>
-                                                <?php $event_words = preg_split('/\s+/', $event_text);
-                                                if (count($event_words) > 75) {
-                                                    echo implode(" ", array_slice($event_words,0,18)); ?>
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
-                                                        style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
-                                                    <?php echo implode(" ", array_slice($event_words, 18)); 
-                                                } else { ?>
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
-                                                        style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
-                                                    <?php echo $event_text;    
-                                                }
-                                            } else { 
-                                                echo $event_text;
-                                            } 
-                                            echo $event_buttons_html; ?>
-                                    </td></tr>
-                            <?php
                                     }
                                 }
                             } 
