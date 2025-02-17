@@ -245,24 +245,22 @@ if (!empty($_POST)) {
                                                     <?php echo $event_header;  ?>
                                                 </h3>
                                             </td></tr> <?php 
-                                        } else {
-                                        
+                                        }
+                                        if (!empty($event_text)) {
                                             // insert html codes to communicate paragraph and line breaks
-                                            if (!empty($event_text)) {
-                                                $event_paragraphs = preg_split('/(\r\n|\n|\r)/', $event_text);
-                                                $event_text = "";
+                                            $event_paragraphs = preg_split('/(\r\n|\n|\r)/', $event_text);
+                                            $event_text = "";
 
-                                                for ($i = 0; $i < count($event_paragraphs); $i++) {
-                                                    if (!empty($event_paragraphs[$i])) {
-                                                        if (($i + 1) < count($event_paragraphs)) {
-                                                            if (empty($event_paragraphs[$i + 1])) {
-                                                                $event_text .= '<p>' . $event_paragraphs[$i] . '</p>';
-                                                            } else {
-                                                                $event_text .= $event_paragraphs[$i] . '<br/>';
-                                                            }
+                                            for ($i = 0; $i < count($event_paragraphs); $i++) {
+                                                if (!empty($event_paragraphs[$i])) {
+                                                    if (($i + 1) < count($event_paragraphs)) {
+                                                        if (empty($event_paragraphs[$i + 1])) {
+                                                            $event_text .= '<p>' . $event_paragraphs[$i] . '</p>';
                                                         } else {
-                                                            $event_text .= $event_paragraphs[$i];
+                                                            $event_text .= $event_paragraphs[$i] . '<br/>';
                                                         }
+                                                    } else {
+                                                        $event_text .= $event_paragraphs[$i];
                                                     }
                                                 }
                                             } ?>
