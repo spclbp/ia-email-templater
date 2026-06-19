@@ -305,19 +305,28 @@ if (!empty($_POST)) {
                                 </td>
                             </tr>
                             <tr>
-                                <td>
-                                    <ul>
+                                <td style="padding: 0;">
+                                    <table role="presentation" style="width: 100%; border-collapse: collapse;">
                                         <?php
                                         foreach ($events as $event) {
                                             if (($event->event_mute !== 'on') && ($event->event_featured !== 'on')) {
                                                 $event_buttons = ia_email_get_buttons($event->id);
                                                 ?>
-                                                <li style="padding: 2px;"><a href="<?php echo stripslashes($event_buttons[0]->event_button_link); ?>"><?php echo stripslashes($event->event_header_text); ?></a></li>
+                                                <tr>
+                                                    <td style="padding: 8px 12px; border-bottom: 1px solid #cccccc; font-size: 15px; line-height: 1.4;">
+                                                        <a href="<?php echo stripslashes($event_buttons[0]->event_button_link); ?>" style="text-decoration: none;"><?php echo stripslashes($event->event_header_text); ?></a>
+                                                    </td>
+                                                </tr>
                                         <?php
                                             }
-                                        } 
+                                        }
                                         ?>
-                                    </ul>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: center; padding: 8px 0;">
+                                    <a href="https://www.indyambassadors.org/events/" style="text-decoration: none;font-size: 16px;">👀 See Our Full Calendar! 📅</a>
                                 </td>
                             </tr>
 

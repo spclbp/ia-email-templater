@@ -58,7 +58,43 @@ addEventListener('DOMContentLoaded', () => {
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = data.image.id
                 }
                 elTwoImages.checked = false
-                elText.value = data.description
+
+                const getRenderedValue = (value) => {
+                    if (typeof value === 'string') return value
+                    if (value && typeof value.rendered === 'string') return value.rendered
+                    return ''
+                }
+
+                const getMeaningfulText = (html) => {
+                    if (!html) return ''
+                    const doc = new DOMParser().parseFromString(html, 'text/html')
+                    return (doc.body.textContent || '').replace(/\s+/g, ' ').trim()
+                }
+
+                const cleanseDescription = (html) => {
+                    if (!html) return ''
+                    const doc = new DOMParser().parseFromString(html, 'text/html')
+                    doc.querySelectorAll('img,script,style').forEach(node => node.remove())
+                    const paragraphs = Array.from(doc.querySelectorAll('p'))
+                        .map(p => (p.textContent || '').trim())
+                        .filter(Boolean)
+                    if (paragraphs.length > 0) {
+                        return paragraphs.join('\n\n')
+                    }
+                    return (doc.body.textContent || '').replace(/\s+/g, ' ').trim()
+                }
+
+                const excerptRaw = getRenderedValue(data.excerpt)
+                const excerptText = getMeaningfulText(excerptRaw) ? excerptRaw : ''
+                const descriptionRaw = getRenderedValue(data.description)
+                const fallbackDescription = cleanseDescription(descriptionRaw)
+                const nextText = excerptText || fallbackDescription
+
+                elText.value = nextText
+                if (elText.id && typeof tinyMCE !== 'undefined') {
+                    const editor = tinyMCE.get(elText.id)
+                    if (editor) editor.setContent(nextText)
+                }
                 elButtonText.value = 'Volunteer'
                 elLink.value = data.url
             })
@@ -440,63 +476,78 @@ addEventListener('DOMContentLoaded', () => {
     }
 
     const eventsWrapper = document.querySelector('.ia-email-events-wrapper')
+    const dropIndicator = document.createElement('div')
+    dropIndicator.className = 'ia-email-drop-indicator'
+
     eventsWrapper.addEventListener('dragover', (e) => {
         e.preventDefault()
-        document.querySelectorAll('.ia-email-row-drag-above, .ia-email-row-drag-below').forEach(r => {
-            r.classList.remove('ia-email-row-drag-above', 'ia-email-row-drag-below')
-        })
         const targetRow = e.target.closest('.ia-email-events-row')
         if (targetRow && targetRow !== draggedRow) {
             const rect = targetRow.getBoundingClientRect()
             if (e.clientY < rect.top + rect.height / 2) {
-                targetRow.classList.add('ia-email-row-drag-above')
+                targetRow.before(dropIndicator)
             } else {
-                targetRow.classList.add('ia-email-row-drag-below')
+                targetRow.after(dropIndicator)
             }
         }
     })
 
     eventsWrapper.addEventListener('dragleave', (e) => {
         if (!eventsWrapper.contains(e.relatedTarget)) {
-            document.querySelectorAll('.ia-email-row-drag-above, .ia-email-row-drag-below').forEach(r => {
-                r.classList.remove('ia-email-row-drag-above', 'ia-email-row-drag-below')
-            })
+            dropIndicator.remove()
         }
     })
 
     eventsWrapper.addEventListener('drop', (e) => {
         e.preventDefault()
-        const targetRow = e.target.closest('.ia-email-events-row')
-        if (targetRow && draggedRow && targetRow !== draggedRow) {
-            const rect = targetRow.getBoundingClientRect()
-            if (e.clientY < rect.top + rect.height / 2) {
-                targetRow.before(draggedRow)
-            } else {
-                targetRow.after(draggedRow)
-            }
+        if (draggedRow && dropIndicator.parentNode) {
+            dropIndicator.before(draggedRow)
         }
-        document.querySelectorAll('.ia-email-row-drag-above, .ia-email-row-drag-below').forEach(r => {
-            r.classList.remove('ia-email-row-drag-above', 'ia-email-row-drag-below')
-        })
+        dropIndicator.remove()
     })
 
     function initDraggable(row) {
-        row.setAttribute('draggable', 'true')
-        row.addEventListener('dragstart', (e) => {
+        const header = row.querySelector('.ia-email-events-row-header')
+        if (!header) return
+
+        header.setAttribute('draggable', 'true')
+        // Buttons inside the header should remain clickable, not draggable
+        header.querySelectorAll('button').forEach(btn => btn.setAttribute('draggable', 'false'))
+
+        header.addEventListener('dragstart', (e) => {
             draggedRow = row
             e.dataTransfer.effectAllowed = 'move'
             e.dataTransfer.setData('text/plain', '')
-            const header = row.querySelector('.ia-email-events-row-header')
-            if (header) {
-                e.dataTransfer.setDragImage(header, header.offsetWidth / 2, header.offsetHeight / 2)
-            }
+
+            const clone = header.cloneNode(true)
+            const cloneButtons = clone.querySelector('.ia-email-events-row-buttons')
+            if (cloneButtons) cloneButtons.remove()
+            Object.assign(clone.style, {
+                position:            'absolute',
+                top:                 '-9999px',
+                left:                '-9999px',
+                display:             'grid',
+                gridTemplateColumns: '100px 1fr',
+                alignItems:          'center',
+                gap:                 '0.5rem',
+                backgroundColor:     '#ddd',
+                padding:             '0.3rem 0.75rem',
+                borderRadius:        '0.25rem',
+                border:              '1px solid #8c8f94',
+                margin:              '0',
+                width:               'max-content',
+                maxWidth:            '420px'
+            })
+            document.body.appendChild(clone)
+            e.dataTransfer.setDragImage(clone, clone.offsetWidth / 2, clone.offsetHeight / 2)
+            setTimeout(() => clone.remove(), 0)
+
             setTimeout(() => row.classList.add('ia-email-row-dragging'), 0)
         })
-        row.addEventListener('dragend', () => {
+
+        header.addEventListener('dragend', () => {
             row.classList.remove('ia-email-row-dragging')
-            document.querySelectorAll('.ia-email-row-drag-above, .ia-email-row-drag-below').forEach(r => {
-                r.classList.remove('ia-email-row-drag-above', 'ia-email-row-drag-below')
-            })
+            dropIndicator.remove()
             draggedRow = null
         })
     }

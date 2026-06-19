@@ -51,12 +51,34 @@ textarea {
     cursor: grabbing;
 }
 
-.ia-email-row-drag-above {
-    border-top: 3px solid #c91829 !important;
+.ia-email-drop-indicator {
+    position: relative;
+    height: 4px;
+    background-color: #c91829;
+    border-radius: 3px;
+    margin: 10px 0;
+    box-shadow: 0 0 8px rgba(201, 24, 41, 0.45);
+    pointer-events: none;
 }
 
-.ia-email-row-drag-below {
-    border-bottom: 3px solid #c91829 !important;
+.ia-email-drop-indicator::before,
+.ia-email-drop-indicator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background-color: #c91829;
+    border-radius: 50%;
+}
+
+.ia-email-drop-indicator::before {
+    left: 0;
+}
+
+.ia-email-drop-indicator::after {
+    right: 0;
 }
 
 .ia-email-events-row-header {
