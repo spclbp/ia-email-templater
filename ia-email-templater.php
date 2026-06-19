@@ -271,7 +271,6 @@ function ia_email_post($post)
     for ($i = 0; $i < count($events); $i++) {
         if ($events[$i]['event-header'] != 'delete') {
             $events[$i]['event-position'] = $event_position++;
-            print 'position' . $events[$i]['event-position'] . ' ';
         }
         if (!array_key_exists('event-featured', $events[$i])) {
             $events[$i]['event-featured'] = 'off';
@@ -294,19 +293,38 @@ function ia_email_post($post)
     }
     $the_events = $events;
 
-    $wpdb->update(
-        $table_templater,
-        array(
-            'header_image_id' => $header_image_id,
-            'header_text' => $header,
-            'intro_paragraph' => $intro_paragraph,
-            'intro_signature' => $intro_signature,
-            'footer_signup' => $footer_signup,
-            'footer_socials' => $footer_socials
-        ),
-        array('id' => 1)
-    );
-    //$last_id = $wpdb->insert_id;
+    $templater_row_exists = intval( $wpdb->get_var( "SELECT COUNT(*) FROM $table_templater WHERE id = 1" ) );
+    if ( $templater_row_exists === 0 ) {
+        $wpdb->insert(
+            $table_templater,
+            array(
+                'id'              => 1,
+                'header_image_id' => intval( $header_image_id ),
+                'header_text'     => $header,
+                'preview_text'    => '',
+                'intro_paragraph' => $intro_paragraph,
+                'intro_signature' => $intro_signature,
+                'footer_signup'   => $footer_signup,
+                'footer_socials'  => $footer_socials,
+            ),
+            array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
+        );
+    } else {
+        $wpdb->update(
+            $table_templater,
+            array(
+                'header_image_id' => intval( $header_image_id ),
+                'header_text'     => $header,
+                'intro_paragraph' => $intro_paragraph,
+                'intro_signature' => $intro_signature,
+                'footer_signup'   => $footer_signup,
+                'footer_socials'  => $footer_socials,
+            ),
+            array( 'id' => 1 ),
+            array( '%d', '%s', '%s', '%s', '%s', '%s' ),
+            array( '%d' )
+        );
+    }
     $last_id = 1;
 
     foreach ($the_events as $event) {
@@ -444,10 +462,7 @@ function ia_email_get($var)
     } else {
         $result = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT $var FROM $table_templater
-            ORDER BY id DESC
-            LIMIT 1
-            "
+                "SELECT $var FROM $table_templater WHERE id = 1 LIMIT 1"
             )
         );
     }

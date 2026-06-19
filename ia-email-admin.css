@@ -192,12 +192,12 @@ input:checked+.slider:before {
     display: flex;
     justify-content: space-evenly;
     position: fixed;
-    top: 0;
+    bottom: 0;
     left: 0;
     width: calc(100% - 180px);
     background: #ddd;
-    padding: 2.5rem 0 .5rem 180px;
-    border-bottom: 1px solid #8c8f94;
+    padding: .5rem 0 .5rem 180px;
+    border-top: 1px solid #8c8f94;
     z-index: 1;
 }
 
