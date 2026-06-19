@@ -1,8 +1,5 @@
 <?php
 
-use AIOSEO\Plugin\Common\Main\Media;
-use AIOSEO\Plugin\Common\Models\Model;
-
 if (!empty($_POST)) {
     ia_email_post($_POST);
 }
@@ -15,7 +12,7 @@ if (!empty($_POST)) {
     <div class="ia-email-admin-inputs">
         <div class="ia-email-admin-inputs-left">
             <h3 class="ia-email-templater-header">Newsletter Content</h3>
-            <form method="post" action="<?php echo the_permalink(); ?>">
+            <form method="post" action="">
                 <div class="ia-email-admin-inputs-left-text">
                     <label for="ia-email-header-image">Header Image</label>
                     <div class="ia-email-header-image-wrapper">

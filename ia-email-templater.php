@@ -10,6 +10,8 @@ Contributor: Chris Blair
 Author URI: https://jklein.me
 */
 
+require_once __DIR__ . '/wordpress-stubs.php';
+
 function ia_email_templater_add()
 {
     add_menu_page(
