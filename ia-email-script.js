@@ -2,6 +2,7 @@ addEventListener('DOMContentLoaded', () => {
 
     const addEventButton = document.querySelector('#add-event')
     const positionSnapshot = new Map()
+    let draggedRow = null
 
     getEvents()
     currentRows()
@@ -176,6 +177,7 @@ addEventListener('DOMContentLoaded', () => {
             })
 
             initSelectImage(selectImageButton)
+            initDraggable(row)
 
 
             selectDropdown.addEventListener('change', (e) => {
@@ -202,6 +204,7 @@ addEventListener('DOMContentLoaded', () => {
         el.innerHTML = document.querySelector('.ia-email-events-row').innerHTML
         emailEventsWrapper.append(el)
         el.dataset.dirty = 'true'
+        initDraggable(el)
         el.querySelector('.ia-email-event-image-preview').src = ''
         el.querySelector('.ia-email-event-image-id').value = ''
         //CLB 1/25/25 - incremental saves
@@ -434,6 +437,68 @@ addEventListener('DOMContentLoaded', () => {
         } else {
             parentEl.style.opacity = '1'
         }
+    }
+
+    const eventsWrapper = document.querySelector('.ia-email-events-wrapper')
+    eventsWrapper.addEventListener('dragover', (e) => {
+        e.preventDefault()
+        document.querySelectorAll('.ia-email-row-drag-above, .ia-email-row-drag-below').forEach(r => {
+            r.classList.remove('ia-email-row-drag-above', 'ia-email-row-drag-below')
+        })
+        const targetRow = e.target.closest('.ia-email-events-row')
+        if (targetRow && targetRow !== draggedRow) {
+            const rect = targetRow.getBoundingClientRect()
+            if (e.clientY < rect.top + rect.height / 2) {
+                targetRow.classList.add('ia-email-row-drag-above')
+            } else {
+                targetRow.classList.add('ia-email-row-drag-below')
+            }
+        }
+    })
+
+    eventsWrapper.addEventListener('dragleave', (e) => {
+        if (!eventsWrapper.contains(e.relatedTarget)) {
+            document.querySelectorAll('.ia-email-row-drag-above, .ia-email-row-drag-below').forEach(r => {
+                r.classList.remove('ia-email-row-drag-above', 'ia-email-row-drag-below')
+            })
+        }
+    })
+
+    eventsWrapper.addEventListener('drop', (e) => {
+        e.preventDefault()
+        const targetRow = e.target.closest('.ia-email-events-row')
+        if (targetRow && draggedRow && targetRow !== draggedRow) {
+            const rect = targetRow.getBoundingClientRect()
+            if (e.clientY < rect.top + rect.height / 2) {
+                targetRow.before(draggedRow)
+            } else {
+                targetRow.after(draggedRow)
+            }
+        }
+        document.querySelectorAll('.ia-email-row-drag-above, .ia-email-row-drag-below').forEach(r => {
+            r.classList.remove('ia-email-row-drag-above', 'ia-email-row-drag-below')
+        })
+    })
+
+    function initDraggable(row) {
+        row.setAttribute('draggable', 'true')
+        row.addEventListener('dragstart', (e) => {
+            draggedRow = row
+            e.dataTransfer.effectAllowed = 'move'
+            e.dataTransfer.setData('text/plain', '')
+            const header = row.querySelector('.ia-email-events-row-header')
+            if (header) {
+                e.dataTransfer.setDragImage(header, header.offsetWidth / 2, header.offsetHeight / 2)
+            }
+            setTimeout(() => row.classList.add('ia-email-row-dragging'), 0)
+        })
+        row.addEventListener('dragend', () => {
+            row.classList.remove('ia-email-row-dragging')
+            document.querySelectorAll('.ia-email-row-drag-above, .ia-email-row-drag-below').forEach(r => {
+                r.classList.remove('ia-email-row-drag-above', 'ia-email-row-drag-below')
+            })
+            draggedRow = null
+        })
     }
 
     function capturePositions() {

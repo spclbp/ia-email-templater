@@ -46,10 +46,24 @@ textarea {
     grid-template-rows: auto 0fr;
 }
 
+.ia-email-row-dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+}
+
+.ia-email-row-drag-above {
+    border-top: 3px solid #c91829 !important;
+}
+
+.ia-email-row-drag-below {
+    border-bottom: 3px solid #c91829 !important;
+}
+
 .ia-email-events-row-header {
     display: grid;
     grid-template-columns: 100px auto 175px;
     align-items: center;
+    cursor: grab;
 }
 
 .ia-email-events-row-header-text,
