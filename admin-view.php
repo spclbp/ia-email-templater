@@ -1,8 +1,5 @@
 <?php
 
-use AIOSEO\Plugin\Common\Main\Media;
-use AIOSEO\Plugin\Common\Models\Model;
-
 if (!empty($_POST)) {
     ia_email_post($_POST);
 }
@@ -15,9 +12,9 @@ if (!empty($_POST)) {
     <div class="ia-email-admin-inputs">
         <div class="ia-email-admin-inputs-left">
             <h3 class="ia-email-templater-header">Newsletter Content</h3>
-            <form method="post" action="<?php echo the_permalink(); ?>">
+            <form method="post" action="">
                 <div class="ia-email-admin-inputs-left-text">
-                    <label for="ia-email-header-iamge">Header Image</label>
+                    <label for="ia-email-header-image">Header Image</label>
                     <div class="ia-email-header-image-wrapper">
                         <img src="<?php echo wp_get_attachment_image_url(ia_email_get('header_image_id'), 'full'); ?>" alt="Header Image Preview" class="ia-email-header-image">
                         <input type="hidden" name="ia-email-header-image" class="ia-email-header-image-id" value="<?php echo ia_email_get('header_image_id'); ?>">
@@ -47,14 +44,21 @@ if (!empty($_POST)) {
                         foreach ($events as $key => $event) {
                             if ($event->event_minimized == "no") { ?>
                                 <div class="ia-email-events-row">
-                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="no"></input>
-                                    <?php } else { ?>
+                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="no"></input> <?php 
+                            } else { ?>
                                  <div class="ia-email-events-row ia-email-events-row-hide">
-                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="yes"></input>
-                                <?php } ?>
+                                    <input type="hidden" name="ia-email-events[][event-minimized]" value="yes"></input> <?php 
+                            } ?>
                                     <div class="ia-email-events-row-header">
-                                        <h3 class="ia-email-events-row-header-text">Event Row</h3>
-                                        <p class="ia-email-events-row-header-label"><?php echo esc_html(stripslashes($event->event_header_text)); ?></p>
+                                        <h3 class="ia-email-events-row-header-text">Row</h3>
+                                        <p class="ia-email-events-row-header-label"> <?php 
+                                            if (!empty($event->event_header_text)) {
+                                                echo esc_html(stripslashes($event->event_header_text));
+                                            } else {
+                                                echo esc_html(substr(stripslashes($event->event_text),0,60) . "...");
+                                            } ?>
+                                        </p>
+                                        <input type="hidden" name="ia-email-events[][event-id]"  class="ia-email-event-id" value="<?php echo $event->id; ?>"></input>
                                         <div class="ia-email-events-row-buttons">
                                             <button class="ia-email-button-small ia-email-move-down"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-down-solid.svg'; ?>" alt="Move Down" title="Move Down"></button>
                                             <button class="ia-email-button-small ia-email-move-up"><img src="<?php echo plugin_dir_url(__FILE__) . 'icons/chevron-up-solid.svg'; ?>" alt="Move Up" title="Move Up"></button>
@@ -86,6 +90,11 @@ if (!empty($_POST)) {
                                                 <span class="slider"></span>
                                             </label>
                                             <label class="ia-email-events-prop">
+                                                Image Right
+                                                <input type="checkbox" name="ia-email-events[][event-img-right]" <?php if ($event->event_img_right == 'on') { ?> checked <?php } ?>></input>
+                                                <span class="slider"></span>
+                                            </label>
+                                            <label class="ia-email-events-prop">
                                                 Divider
                                                 <input type="checkbox" name="ia-email-events[][event-divider]" <?php if ($event->event_divider == 'on') { ?> checked <?php } ?>></input>
                                                 <span class="slider"></span>
@@ -97,14 +106,15 @@ if (!empty($_POST)) {
                                             </label>
                                         </div>
                                         <label for="ia-email-event-header">Event Row Header</label>
-                                        <input type="text" name="ia-email-events[][event-header]" value="<?php echo esc_html(stripslashes($event->event_header_text)); ?>"></input>
+                                        <input type="text" name="ia-email-events[][event-header]" class="event-row-header" value="<?php echo esc_html(stripslashes($event->event_header_text)); ?>"></input>
                                         <label for="ia-email-event-image">Event Row Image</label>
                                         <?php
                                         $event_imgs = ia_email_get_imgs($event->id);
                                         if (empty($event_imgs)) { ?>
                                             <div class="ia-email-event-image-wrapper">
+                                            <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="">
                                                 <img src="" alt="Event Image Preview" class="ia-email-event-image-preview">
-                                                <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="">
+                                                <input type="hidden" name="ia-email-events[][event-image-image-id][]" class="ia-email-event-image-image-id" value="">
                                                 <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
                                             </div>
                                             <?php
@@ -112,7 +122,8 @@ if (!empty($_POST)) {
                                             foreach ($event_imgs as $event_img) { ?>
                                                 <div class="ia-email-event-image-wrapper">
                                                     <img src="<?php echo wp_get_attachment_image_url($event_img->event_img_id, 'full'); ?>" alt="Event Image Preview" class="ia-email-event-image-preview">
-                                                    <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="<?php echo $event_img->event_img_id; ?>">
+                                                    <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="<?php echo $event_img->id; ?>">
+                                                    <input type="hidden" name="ia-email-events[][event-image-image-id][]" class="ia-email-event-image-image-id" value="<?php echo $event_img->event_img_id; ?>">
                                                     <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
                                                 </div>
                                         <?php
@@ -126,7 +137,7 @@ if (!empty($_POST)) {
                                             'ia-email-event-text-' . $key,
                                             array(
                                                 'media_buttons' => false,
-                                                'textarea_rows' => '6',
+                                                'textarea_rows' => '10',
                                                 'textarea_name' => 'ia-email-events[][event-text]'
                                             )
                                         );
@@ -137,7 +148,7 @@ if (!empty($_POST)) {
                                             <div class="ia-email-event-button-wrapper">
                                                 <div class="ia-email-event-button-inputs">
                                                     <label for="ia-email-event-button-text">Event Row Button Text</label>
-                                                    <input type="text" name="ia-email-events[][event-button][text][]" value="Volunteer"></input>
+                                                    <input type="text" name="ia-email-events[][event-button][text][]" class="event-button-text" value="Volunteer"></input>
                                                     <label for="ia-email-event-link">Event Row Button Link</label>
                                                     <input type="text" name="ia-email-events[][event-button][link][]" value="https://www.example.com"></input>
                                                 </div>
@@ -151,8 +162,9 @@ if (!empty($_POST)) {
                                             foreach ($event_buttons as $event_button) { ?>
                                                 <div class="ia-email-event-button-wrapper">
                                                     <div class="ia-email-event-button-inputs">
+                                                        <input type="hidden" name="ia-email-events[][event-button][id][]"  value="<?php echo $event_button->id; ?>"></input>
                                                         <label for="ia-email-event-button-text">Event Row Button Text</label>
-                                                        <input type="text" name="ia-email-events[][event-button][text][]" value="<?php echo stripslashes($event_button->event_button_text); ?>"></input>
+                                                        <input type="text" name="ia-email-events[][event-button][text][]"  class="event-button-text" value="<?php echo stripslashes($event_button->event_button_text); ?>"></input>
                                                         <label for="ia-email-event-link">Event Row Button Link</label>
                                                         <input type="text" name="ia-email-events[][event-button][link][]" value="<?php echo stripslashes($event_button->event_button_link); ?>"></input>
                                                     </div>
@@ -203,6 +215,7 @@ if (!empty($_POST)) {
                                     <img src="<?php echo wp_get_attachment_url(ia_email_get('header_image_id')); ?>" width="100%" alt="" style="width: 100%; height: auto;" />
                                 </td>
                             </tr>
+                            <tr style="height: 16px;"><td></td></tr>
                             <?php
                             $row_num=0;
                             foreach ($events as $event) {
@@ -228,43 +241,59 @@ if (!empty($_POST)) {
                                                 <h3 style="margin-bottom:4px;">
                                                     <?php echo $event_header;  ?>
                                                 </h3>
-                                            </td></tr>
-                                        <?php } ?>
+                                            </td></tr> <?php 
+                                        }
+                                        if (!empty($event_text)) {
+                                            // insert html codes to communicate paragraph and line breaks
+                                            $event_paragraphs = preg_split('/(\r\n|\n|\r)/', $event_text);
+                                            $event_text = "";
 
-
-                                        <tr><td>
-                                        <?php
-                                            $event_imgs = ia_email_get_imgs($event->id);
-                                            $event_image1_url=wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full');
-                                            
-                                            $event_buttons_html = ia_email_get_buttons_html($event->id);
-                                            if (count($event_imgs) > 1) { ?>
-                                                <div>
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="23%" alt="" 
-                                                    style="display: inline; width: 32%; max-width: 99px; height: auto; float: left; margin: 0px 0px 2px 2px;" />
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="23%" alt="" 
-                                                    style="display: inline; width: 32%; max-width: 99px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
-                                                    <?php echo $event_text;  ?>
-                                                </div>
-                                                <?php
-                                            } elseif (!empty($event_image1_url)) { ?>
-                                                <?php $event_words = preg_split('/\s+/', $event_text);
-                                                if (count($event_words) > 75) {
-                                                    echo implode(" ", array_slice($event_words,0,18)); ?>
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
-                                                        style="display: block; width: 65%; max-width: 200px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
-                                                    <?php echo implode(" ", array_slice($event_words, 18)); 
-                                                } else { ?>
-                                                    <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
-                                                        style="display: block; width: 65%; max-width: 200px; height: auto; float: left; margin: 0px 10px 2px 2px;" />
-                                                    <?php echo $event_text;    
+                                            for ($i = 0; $i < count($event_paragraphs); $i++) {
+                                                if (!empty($event_paragraphs[$i])) {
+                                                    if (($i + 1) < count($event_paragraphs)) {
+                                                        if (empty($event_paragraphs[$i + 1])) {
+                                                            $event_text .= '<p>' . $event_paragraphs[$i] . '</p>';
+                                                        } else {
+                                                            $event_text .= $event_paragraphs[$i] . '<br/>';
+                                                        }
+                                                    } else {
+                                                        $event_text .= $event_paragraphs[$i];
+                                                    }
                                                 }
-                                            } else { 
-                                                echo $event_text;
-                                            } 
-                                            echo $event_buttons_html; ?>
-                                    </td></tr>
-                            <?php
+                                            } ?>
+                                            <tr><td> <?php
+                                                $event_imgs = ia_email_get_imgs($event->id);
+                                                $event_image1_url=wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full');
+                                                
+                                                $event_buttons_html = ia_email_get_buttons_html($event->id);
+                                                $float_direction = ($event->event_img_right == 'on') ? 'right' : 'left';
+                                                if (count($event_imgs) > 1) { ?>
+                                                    <div>
+                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="23%" alt="" 
+                                                        style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 0px 2px 2px;" />
+                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="23%" alt="" 
+                                                        style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo $event_text;  ?>
+                                                    </div>
+                                                    <?php
+                                                } elseif (!empty($event_image1_url)) { ?>
+                                                    <?php $event_words = preg_split('/\s+/', $event_text);
+                                                    if (count($event_words) > 75) {
+                                                        echo implode(" ", array_slice($event_words,0,18)); ?>
+                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
+                                                            style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo implode(" ", array_slice($event_words, 18)); 
+                                                    } else { ?>
+                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
+                                                            style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo $event_text;    
+                                                    }
+                                                } else { 
+                                                    echo $event_text;
+                                                } 
+                                                echo $event_buttons_html; ?>
+                                            </td></tr> <?php
+                                        }
                                     }
                                 }
                             } 
@@ -293,8 +322,8 @@ if (!empty($_POST)) {
                             </tr>
 
                             <tr style="background-color: WhiteSmoke;text-align:center"><td>
-                                <h3 style="margin-bottom:0px;">Are we missing any volunteer opportunities?</h3>
-                                Let us know! It could be featured in our next newsletter.<br/>Submit
+                                <h3 style="margin-bottom:0px;">Are we missing any opportunities?</h3>
+                                Let us know! It could be in our next issue.<br/>Submit
                                     <a href="https://www.indyambassadors.org/events/community/add">an event</a>,
                                     <a href="https://www.indyambassadors.org/add-ongoing/" >an ongoing opportunity</a>, or
                                     <a href="mailto:volunteeradmin@indyambassadors.org">email us.</a>
@@ -302,7 +331,28 @@ if (!empty($_POST)) {
                             </td></tr>
                             <tr style="text-align:center">
                                 <td>
-                                    <p><?php echo stripslashes(ia_email_get('footer_socials')); ?></p>
+                                    <p><?php 
+                                        $footer_text = stripslashes(ia_email_get('footer_socials'));
+                                        // insert html codes to communicate paragraph and line breaks
+                                        if (!empty($footer_text)) {
+                                            $footer_paragraphs = preg_split('/(\r\n|\n|\r)/', $footer_text);
+                                            $footer_text = "";
+
+                                            for ($i = 0; $i < count($footer_paragraphs); $i++) {
+                                                if (!empty($footer_paragraphs[$i])) {
+                                                    if (($i + 1) < count($footer_paragraphs)) {
+                                                        if (empty($footer_paragraphs[$i + 1])) {
+                                                            $footer_text .= '<p>' . $footer_paragraphs[$i] . '</p>';
+                                                        } else {
+                                                            $footer_text .= $footer_paragraphs[$i] . '<br/>';
+                                                        }
+                                                    } else {
+                                                        $footer_text .= $footer_paragraphs[$i];
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        echo $footer_text; ?></p>
                                 </td>
                             </tr>
                         </tbody>
