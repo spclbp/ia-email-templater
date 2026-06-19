@@ -1,9 +1,11 @@
 addEventListener('DOMContentLoaded', () => {
 
     const addEventButton = document.querySelector('#add-event')
+    const positionSnapshot = new Map()
 
     getEvents()
     currentRows()
+    capturePositions()
 
     addEventButton.addEventListener('click', (e) => {
         e.preventDefault()
@@ -102,16 +104,22 @@ addEventListener('DOMContentLoaded', () => {
             let selectMoveRowUp = row.querySelector('.ia-email-move-up')
             let isMinimized = row.querySelector('[name="ia-email-events[][event-minimized]"]')
 
+            row.dataset.dirty = 'false'
+            row.addEventListener('change', () => { row.dataset.dirty = 'true' })
+            row.addEventListener('input', () => { row.dataset.dirty = 'true' })
+
             selectMinimizeButton.addEventListener('click', (e) => {
                 e.preventDefault()
                 selectMinimizeButton.parentNode.parentNode.parentNode.classList.add('ia-email-events-row-hide')
                 isMinimized.value = "yes"
+                row.dataset.dirty = 'true'
             })
 
             selectMaximizeButton.addEventListener('click', (e) => {
                 e.preventDefault()
                 selectMaximizeButton.parentNode.parentNode.parentNode.classList.remove('ia-email-events-row-hide')
                 isMinimized.value = "no"
+                row.dataset.dirty = 'true'
             })
 
             selectRemoveButton.addEventListener('click', (e) => {
@@ -120,6 +128,7 @@ addEventListener('DOMContentLoaded', () => {
                     //selectRemoveButton.parentNode.parentNode.parentNode.remove()
                     selectRemoveButton.parentNode.parentNode.parentNode.querySelector('.event-row-header').value = 'delete';
                     selectRemoveButton.parentNode.parentNode.parentNode.style.display = 'none';
+                    row.dataset.dirty = 'true'
                 }
             })
 
@@ -192,6 +201,7 @@ addEventListener('DOMContentLoaded', () => {
         el.classList.add('ia-email-events-row')
         el.innerHTML = document.querySelector('.ia-email-events-row').innerHTML
         emailEventsWrapper.append(el)
+        el.dataset.dirty = 'true'
         el.querySelector('.ia-email-event-image-preview').src = ''
         el.querySelector('.ia-email-event-image-id').value = ''
         //CLB 1/25/25 - incremental saves
@@ -240,11 +250,13 @@ addEventListener('DOMContentLoaded', () => {
         minimizeButton.addEventListener('click', (e) => {
             e.preventDefault()
             el.classList.add('ia-email-events-row-hide')
+            el.dataset.dirty = 'true'
         })
 
         maximizeButton.addEventListener('click', (e) => {
             e.preventDefault()
             el.classList.remove('ia-email-events-row-hide')
+            el.dataset.dirty = 'true'
         })
 
         removeButton.addEventListener('click', (e) => {
@@ -316,6 +328,8 @@ addEventListener('DOMContentLoaded', () => {
                 el.parentElement.getElementsByClassName("ia-email-event-image-preview")[0].src = attachment.url
                 el.parentElement.getElementsByClassName("ia-email-event-image-image-id")[0].value = attachment.id
                 wp.media.model.settings.post.id = wp_media_post_id
+                const dirtyRow = el.closest('.ia-email-events-row')
+                if (dirtyRow) dirtyRow.dataset.dirty = 'true'
             })
             file_frame.open()
         })
@@ -421,6 +435,46 @@ addEventListener('DOMContentLoaded', () => {
             parentEl.style.opacity = '1'
         }
     }
+
+    function capturePositions() {
+        document.querySelectorAll('.ia-email-events-row').forEach((row, index) => {
+            const eventIdInput = row.querySelector('.ia-email-event-id')
+            if (eventIdInput && eventIdInput.value) {
+                positionSnapshot.set(eventIdInput.value, index)
+            }
+        })
+    }
+
+    if (typeof tinyMCE !== 'undefined') {
+        tinyMCE.on('AddEditor', (e) => {
+            const textarea = document.getElementById(e.editor.id)
+            if (textarea) {
+                const row = textarea.closest('.ia-email-events-row')
+                if (row) {
+                    e.editor.on('Change', () => { row.dataset.dirty = 'true' })
+                }
+            }
+        })
+    }
+
+    document.querySelector('form').addEventListener('submit', () => {
+        document.querySelectorAll('.ia-email-events-row').forEach((row, index) => {
+            row.querySelectorAll('[name="ia-email-events[][event-unchanged]"]').forEach(m => m.remove())
+            const eventIdInput = row.querySelector('.ia-email-event-id')
+            const eventId = eventIdInput ? eventIdInput.value : ''
+            const isDirty = row.dataset.dirty === 'true'
+            const isNew = !eventId
+            const originalPos = positionSnapshot.get(eventId)
+            const positionChanged = originalPos !== undefined && originalPos !== index
+            if (!isDirty && !isNew && !positionChanged) {
+                const marker = document.createElement('input')
+                marker.type = 'hidden'
+                marker.name = 'ia-email-events[][event-unchanged]'
+                marker.value = 'yes'
+                row.appendChild(marker)
+            }
+        })
+    })
 
     document.querySelector('#copy-code').addEventListener('click', (e) => {
         e.preventDefault()

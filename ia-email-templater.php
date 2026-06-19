@@ -331,6 +331,9 @@ function ia_email_post($post)
         if (!empty($event)) {
             if (!empty($event['event-id'])) {
                 $event_id = $event['event-id'];
+                if ( isset( $event['event-unchanged'] ) && $event['event-unchanged'] === 'yes' ) {
+                    continue;
+                }
                 if ($event['event-header'] == 'delete') {
                     $wpdb->delete(
                         $table_event_buttons,
