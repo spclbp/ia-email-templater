@@ -62,17 +62,11 @@ addEventListener('DOMContentLoaded', () => {
         let elButtonRows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
         if (id != 'none') {
             fetch(`https://www.indyambassadors.org/wp-json/tribe/events/v1/events/${id}`).then(res => res.json()).then(data => {
-                rowLabel.textContent = data.title
-                elHeader.value = data.title
-                if (elImages.length > 1) {
-                    elImages[0].querySelector('.ia-email-event-image-preview').src = data.image.url
-                    elImages[0].querySelector('.ia-email-event-image-image-id').value = data.image.id
-                    elImages[1].remove()
-                } else {
-                    elImages[0].querySelector('.ia-email-event-image-preview').src = data.image.url
-                    elImages[0].querySelector('.ia-email-event-image-image-id').value = data.image.id
+                const getPlainTextValue = (value) => {
+                    if (typeof value === 'string') return value
+                    if (value && typeof value.rendered === 'string') return value.rendered
+                    return ''
                 }
-                elTwoImages.checked = false
 
                 const getRenderedValue = (value) => {
                     if (typeof value === 'string') return value
@@ -99,6 +93,142 @@ addEventListener('DOMContentLoaded', () => {
                     return (doc.body.textContent || '').replace(/\s+/g, ' ').trim()
                 }
 
+                const pickImage = (image) => {
+                    if (!image || typeof image !== 'object') {
+                        return { url: '', id: '' }
+                    }
+
+                    const preferredSize = image.sizes && (
+                        image.sizes.thumbnail
+                        || image.sizes['gallery-thumbnail']
+                        || image.sizes.medium
+                        || image.sizes.large
+                        || image.sizes.billboard
+                    )
+                    return {
+                        url: (preferredSize && preferredSize.url) || image.url || '',
+                        id: image.id || ''
+                    }
+                }
+
+                const getVolunteerLinkFromCustomFields = (customFields) => {
+                    if (!customFields || typeof customFields !== 'object') return ''
+
+                    const isLikelyUrl = (value) => {
+                        if (typeof value !== 'string') return false
+                        return /^https?:\/\//i.test(value.trim())
+                    }
+
+                    // First pass: exact label match to avoid false positives like "Volunteer Perks".
+                    for (const key of Object.keys(customFields)) {
+                        const field = customFields[key]
+                        if (!field || typeof field !== 'object') continue
+
+                        const label = (field.label || '').toString().trim().toLowerCase()
+                        const value = (field.value || '').toString().trim()
+
+                        if (label === 'volunteer link' && isLikelyUrl(value)) {
+                            return value
+                        }
+                    }
+
+                    // Fallback: look for a volunteer-labeled field that is actually a URL.
+                    for (const key of Object.keys(customFields)) {
+                        const field = customFields[key]
+                        if (!field || typeof field !== 'object') continue
+
+                        const label = (field.label || '').toString().trim().toLowerCase()
+                        const value = (field.value || '').toString().trim()
+
+                        if (!value) continue
+                        if (label.includes('volunteer') && isLikelyUrl(value)) {
+                            return value
+                        }
+                    }
+
+                    return ''
+                }
+
+                const getOrganizerUrl = (organizer) => {
+                    if (!organizer) return ''
+
+                    const normalizeLink = (value) => {
+                        if (typeof value !== 'string') return ''
+                        return value.trim()
+                    }
+
+                    const getPreferredOrganizerLink = (entry) => {
+                        if (!entry || typeof entry !== 'object') return ''
+                        return normalizeLink(entry.website) || normalizeLink(entry.url)
+                    }
+
+                    if (Array.isArray(organizer)) {
+                        for (const person of organizer) {
+                            const preferredLink = getPreferredOrganizerLink(person)
+                            if (preferredLink) {
+                                return preferredLink
+                            }
+                        }
+                        return ''
+                    }
+
+                    return getPreferredOrganizerLink(organizer)
+                }
+
+                const ensureButtonRows = (desiredCount) => {
+                    let rows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
+
+                    while (rows.length < desiredCount) {
+                        const addBtn = rows[rows.length - 1].querySelector('.ia-email-button-add')
+                        createEventButtons(addBtn)
+                        rows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
+                    }
+
+                    while (rows.length > desiredCount) {
+                        rows[rows.length - 1].remove()
+                        rows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
+                    }
+
+                    return rows
+                }
+
+                const eventTitle = getPlainTextValue(data.title)
+                const selectedImage = pickImage(data.image)
+                const volunteerLink = getVolunteerLinkFromCustomFields(data.custom_fields)
+                const organizerUrl = getOrganizerUrl(data.organizer)
+                const eventUrl = (typeof data.url === 'string' && data.url.trim()) ? data.url.trim() : ''
+                const eventButtonLink = (typeof data.website === 'string' && data.website.trim())
+                    ? data.website.trim()
+                    : eventUrl
+
+                const buttonConfigs = []
+                if (volunteerLink) {
+                    buttonConfigs.push({ text: 'Volunteer', link: volunteerLink })
+                    if (eventButtonLink) {
+                        buttonConfigs.push({ text: 'Event', link: eventButtonLink })
+                    }
+                } else {
+                    const fallbackLink = data.website || eventUrl || ''
+                    const fallbackText = data.website ? 'Learn More' : 'Volunteer'
+                    buttonConfigs.push({ text: fallbackText, link: fallbackLink })
+                }
+
+                if (organizerUrl) {
+                    buttonConfigs.push({ text: 'Organizer', link: organizerUrl })
+                }
+
+                rowLabel.textContent = eventTitle
+                elHeader.value = eventTitle
+                if (elImages.length > 1) {
+                    elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
+                    elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
+                    elImages[1].remove()
+                } else {
+                    elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
+                    elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
+                }
+                elTwoImages.checked = false
+
                 const excerptRaw = getRenderedValue(data.excerpt)
                 const excerptText = getMeaningfulText(excerptRaw) ? excerptRaw : ''
                 const descriptionRaw = getRenderedValue(data.description)
@@ -110,8 +240,15 @@ addEventListener('DOMContentLoaded', () => {
                     const editor = tinyMCE.get(elText.id)
                     if (editor) editor.setContent(nextText)
                 }
-                elButtonText.value = 'Volunteer'
-                elLink.value = data.url
+
+                const resolvedButtons = buttonConfigs.length > 0 ? buttonConfigs : [{ text: '', link: '' }]
+                const buttonRows = ensureButtonRows(resolvedButtons.length)
+
+                resolvedButtons.forEach((button, index) => {
+                    const row = buttonRows[index]
+                    row.querySelector('[name="ia-email-events[][event-button][text][]"]').value = button.text
+                    row.querySelector('[name="ia-email-events[][event-button][link][]"]').value = button.link
+                })
             })
         } else {
             rowLabel.textContent = ''
