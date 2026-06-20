@@ -1,5 +1,18 @@
 <?php
 
+if (!function_exists('ia_email_strip_emojis')) {
+    function ia_email_strip_emojis($text)
+    {
+        if (!is_string($text) || $text === '') {
+            return $text;
+        }
+
+        $emoji_pattern = '/[\x{1F1E6}-\x{1F1FF}\x{1F300}-\x{1F5FF}\x{1F600}-\x{1F64F}\x{1F680}-\x{1F6FF}\x{1F700}-\x{1F77F}\x{1F780}-\x{1F7FF}\x{1F800}-\x{1F8FF}\x{1F900}-\x{1F9FF}\x{1FA00}-\x{1FAFF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{FE0F}\x{200D}]/u';
+
+        return preg_replace($emoji_pattern, '', $text);
+    }
+}
+
 if (!empty($_POST)) {
     ia_email_post($_POST);
 }
@@ -220,11 +233,12 @@ if (!empty($_POST)) {
                             $row_num=0;
                             foreach ($events as $event) {
                                 if (($event->event_mute !== 'on') && ($event->event_featured == 'on')) {
+                                    $featured_event_header = ia_email_strip_emojis(stripslashes($event->event_header_text));
                                     if ($event->event_divider == 'on') { ?>
                                         <tr style="background-color: #ffffff;height:20px;"><td></td></tr>
                                         <tr style="background-color: Gainsboro;"><td>
                                         <div style="text-align: center; line-height: 1; margin-bottom: 4px;">
-                                            <span style="font-size: 36px; font-weight: bold;"><?php echo stripslashes($event->event_header_text); ?></span><br />
+                                            <span style="font-size: 36px; font-weight: bold;"><?php echo $featured_event_header; ?></span><br />
                                         </div>
                                         <div style="text-align: center; font-size: 14px; line-height: 1;">
                                             <?php echo stripslashes($event->event_text); ?>
@@ -232,7 +246,7 @@ if (!empty($_POST)) {
                                         </td></tr>
                                     <?php
                                     } else {
-                                        $event_header = stripslashes($event->event_header_text);
+                                        $event_header = $featured_event_header;
                                         $event_text=stripslashes($event->event_text);
                                         if (empty($event_text) && !empty($event_header)) {
                                             ?><span style="font-size: 0px;"><?php echo $event_header;?></span><?php
