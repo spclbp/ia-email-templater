@@ -1,8 +1,14 @@
 addEventListener('DOMContentLoaded', () => {
 
     const addEventButton = document.querySelector('#add-event')
+    const form = document.querySelector('form')
     const positionSnapshot = new Map()
     let draggedRow = null
+    let hasUnsavedChanges = false
+
+    const markUnsavedChanges = () => {
+        hasUnsavedChanges = true
+    }
 
     getEvents()
     currentRows()
@@ -11,6 +17,15 @@ addEventListener('DOMContentLoaded', () => {
     addEventButton.addEventListener('click', (e) => {
         e.preventDefault()
         createEvent()
+    })
+
+    form.addEventListener('input', markUnsavedChanges)
+    form.addEventListener('change', markUnsavedChanges)
+
+    window.addEventListener('beforeunload', (e) => {
+        if (!hasUnsavedChanges) return
+        e.preventDefault()
+        e.returnValue = ''
     })
 
     function getEvents() {
@@ -567,13 +582,17 @@ addEventListener('DOMContentLoaded', () => {
             if (textarea) {
                 const row = textarea.closest('.ia-email-events-row')
                 if (row) {
-                    e.editor.on('Change', () => { row.dataset.dirty = 'true' })
+                    e.editor.on('Change', () => {
+                        row.dataset.dirty = 'true'
+                        markUnsavedChanges()
+                    })
                 }
             }
         })
     }
 
-    document.querySelector('form').addEventListener('submit', () => {
+    form.addEventListener('submit', () => {
+        hasUnsavedChanges = false
         document.querySelectorAll('.ia-email-events-row').forEach((row, index) => {
             row.querySelectorAll('[name="ia-email-events[][event-unchanged]"]').forEach(m => m.remove())
             const eventIdInput = row.querySelector('.ia-email-event-id')
