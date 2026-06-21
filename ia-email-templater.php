@@ -10,7 +10,10 @@ Contributor: Chris Blair
 Author URI: https://jklein.me
 */
 
-require_once __DIR__ . '/wordpress-stubs.php';
+// Load local stubs only for non-WordPress tooling (linting/static analysis).
+if (!defined('ABSPATH')) {
+    require_once __DIR__ . '/wordpress-stubs.php';
+}
 
 function ia_email_templater_add()
 {
