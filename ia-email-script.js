@@ -1,10 +1,12 @@
 addEventListener('DOMContentLoaded', () => {
 
     const addEventButton = document.querySelector('#add-event')
+    const saveButton = document.querySelector('#ia-email-save')
     const form = document.querySelector('form')
     const positionSnapshot = new Map()
     let draggedRow = null
     let hasUnsavedChanges = false
+    let bypassUnloadWarning = false
 
     const markUnsavedChanges = () => {
         hasUnsavedChanges = true
@@ -22,8 +24,14 @@ addEventListener('DOMContentLoaded', () => {
     form.addEventListener('input', markUnsavedChanges)
     form.addEventListener('change', markUnsavedChanges)
 
+    if (saveButton) {
+        saveButton.addEventListener('click', () => {
+            bypassUnloadWarning = true
+        })
+    }
+
     window.addEventListener('beforeunload', (e) => {
-        if (!hasUnsavedChanges) return
+        if (!hasUnsavedChanges || bypassUnloadWarning) return
         e.preventDefault()
         e.returnValue = ''
     })
@@ -350,6 +358,8 @@ addEventListener('DOMContentLoaded', () => {
                 e.addEventListener('click', (f) => {
                     f.preventDefault()
                     createEventButtons(e)
+                    row.dataset.dirty = 'true'
+                    markUnsavedChanges()
                 })
             })
 
@@ -360,6 +370,8 @@ addEventListener('DOMContentLoaded', () => {
                         //e.parentElement.parentElement.remove()
                         e.parentElement.parentElement.querySelector('.event-button-text').value = 'delete';
                         e.parentElement.parentElement.style.display = 'none';
+                        row.dataset.dirty = 'true'
+                        markUnsavedChanges()
                     }
                 })
             })
@@ -392,6 +404,7 @@ addEventListener('DOMContentLoaded', () => {
         el.innerHTML = document.querySelector('.ia-email-events-row').innerHTML
         emailEventsWrapper.append(el)
         el.dataset.dirty = 'true'
+        markUnsavedChanges()
         initDraggable(el)
         el.querySelector('.ia-email-event-image-preview').src = ''
         el.querySelector('.ia-email-event-image-id').value = ''
@@ -561,6 +574,7 @@ addEventListener('DOMContentLoaded', () => {
 
     function createEventButtons(el) {
         let elParent = el.parentElement.parentElement
+        const dirtyRow = el.closest('.ia-email-events-row')
         let newBtnRow = document.createElement('div')
         newBtnRow.classList.add('ia-email-event-button-wrapper')
         newBtnRow.innerHTML = document.querySelector('.ia-email-event-button-wrapper').innerHTML
@@ -568,6 +582,8 @@ addEventListener('DOMContentLoaded', () => {
             e.value = ''
         })
         elParent.after(newBtnRow)
+        if (dirtyRow) dirtyRow.dataset.dirty = 'true'
+        markUnsavedChanges()
         let newAddBtn = newBtnRow.querySelector('.ia-email-button-add')
         let newRemBtn = newBtnRow.querySelector('.ia-email-button-remove')
         newAddBtn.addEventListener('click', (e) => {
@@ -577,6 +593,8 @@ addEventListener('DOMContentLoaded', () => {
         newRemBtn.addEventListener('click', (e) => {
             e.preventDefault()
             newBtnRow.remove()
+            if (dirtyRow) dirtyRow.dataset.dirty = 'true'
+            markUnsavedChanges()
         })
     }
 
