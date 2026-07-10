@@ -12,6 +12,12 @@ addEventListener('DOMContentLoaded', () => {
         hasUnsavedChanges = true
     }
 
+    const toPlainText = (value) => {
+        if (typeof value !== 'string' || value === '') return ''
+        const doc = new DOMParser().parseFromString(value, 'text/html')
+        return (doc.body.textContent || '').replace(/\s+/g, ' ').trim()
+    }
+
     getEvents()
     currentRows()
     capturePositions()
@@ -225,7 +231,7 @@ addEventListener('DOMContentLoaded', () => {
                     buttonConfigs.push({ text: 'Organizer', link: organizerUrl })
                 }
 
-                rowLabel.textContent = eventTitle
+                rowLabel.textContent = toPlainText(eventTitle)
                 elHeader.value = eventTitle
                 if (elImages.length > 1) {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
@@ -677,7 +683,8 @@ addEventListener('DOMContentLoaded', () => {
     function handleDivider(el) {
         const parentEl = el.parentElement.parentElement.parentElement.parentElement
         if (el.checked) {
-            parentEl.querySelector('.ia-email-events-row-header-label').textContent = 'Divider: ' + parentEl.querySelector('.event-row-header').value;
+            const plainHeader = toPlainText(parentEl.querySelector('.event-row-header').value)
+            parentEl.querySelector('.ia-email-events-row-header-label').textContent = 'Divider: ' + plainHeader;
             parentEl.querySelector('.ia-email-events-get-tec').style.display = 'none'
             parentEl.querySelector('.ia-email-tec-dropdown').value = 'none'
             parentEl.querySelector('[for="ia-email-event-image"]').style.display = 'none'

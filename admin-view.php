@@ -68,7 +68,7 @@ if (!empty($_POST)) {
                                             if (!empty($event->event_header_text)) {
                                                 echo esc_html(stripslashes($event->event_header_text));
                                             } else {
-                                                echo esc_html(substr(stripslashes($event->event_text),0,60) . "...");
+                                                echo esc_html(substr(strip_tags(stripslashes($event->event_text)),0,60) . "...");
                                             } ?>
                                         </p>
                                         <input type="hidden" name="ia-email-events[][event-id]"  class="ia-email-event-id" value="<?php echo $event->id; ?>"></input>
