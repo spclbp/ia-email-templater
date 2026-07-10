@@ -742,6 +742,18 @@ addEventListener('DOMContentLoaded', () => {
         // Buttons inside the header should remain clickable, not draggable
         header.querySelectorAll('button').forEach(btn => btn.setAttribute('draggable', 'false'))
 
+        header.addEventListener('dblclick', (e) => {
+            if (e.target.closest('.ia-email-events-row-buttons')) return
+
+            const muteToggle = row.querySelector('[name="ia-email-events[][event-mute]"]')
+            if (!muteToggle) return
+
+            muteToggle.checked = !muteToggle.checked
+            handleMute(muteToggle)
+            row.dataset.dirty = 'true'
+            markUnsavedChanges()
+        })
+
         header.addEventListener('dragstart', (e) => {
             draggedRow = row
             e.dataTransfer.effectAllowed = 'move'
