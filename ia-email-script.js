@@ -230,10 +230,12 @@ addEventListener('DOMContentLoaded', () => {
                 if (elImages.length > 1) {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
+                    syncRemoveImageVisibility(elImages[0])
                     elImages[1].remove()
                 } else {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
+                    syncRemoveImageVisibility(elImages[0])
                 }
                 elTwoImages.checked = false
 
@@ -264,10 +266,12 @@ addEventListener('DOMContentLoaded', () => {
             if (elImages.length > 1) {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
                 elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
+                syncRemoveImageVisibility(elImages[0])
                 elImages[1].remove()
             } else {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
                 elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
+                syncRemoveImageVisibility(elImages[0])
             }
             elTwoImages.checked = false
             elText.value = ''
@@ -288,6 +292,7 @@ addEventListener('DOMContentLoaded', () => {
 
         for (let [i, row] of rows.entries()) {
             let selectImageButton = row.querySelector('.ia-email-select-image')
+            let selectRemoveImageButtons = row.querySelectorAll('.ia-email-remove-image')
             let selectMinimizeButton = row.querySelector('.ia-email-minimize')
             let selectMaximizeButton = row.querySelector('.ia-email-maximize')
             let selectRemoveButton = row.querySelector('.ia-email-remove')
@@ -338,7 +343,10 @@ addEventListener('DOMContentLoaded', () => {
                     imgWrap.after(imgWrapClone)
                     imgWrapClone.querySelector('.ia-email-event-image-id').value = ''
                     imgWrapClone.querySelector('.ia-email-event-image-preview').src = ''
+                    imgWrapClone.querySelector('.ia-email-event-image-image-id').value = ''
                     initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
+                    initRemoveImage(imgWrapClone.querySelector('.ia-email-remove-image'))
+                    syncRemoveImageVisibility(imgWrapClone)
                 } else {
                     imgWrap.nextElementSibling.remove()
                 }
@@ -377,6 +385,8 @@ addEventListener('DOMContentLoaded', () => {
             })
 
             initSelectImage(selectImageButton)
+            selectRemoveImageButtons.forEach((button) => initRemoveImage(button))
+            row.querySelectorAll('.ia-email-event-image-wrapper').forEach((wrapper) => syncRemoveImageVisibility(wrapper))
             initDraggable(row)
 
 
@@ -414,6 +424,7 @@ addEventListener('DOMContentLoaded', () => {
         //CLB 1/25/25 - incremental saves
 
         let imageButton = el.querySelector('.ia-email-select-image')
+        let removeImageButton = el.querySelector('.ia-email-remove-image')
         let moveRowDownButton = el.querySelector('.ia-email-move-down')
         let moveRowUpButton = el.querySelector('.ia-email-move-up')
         let minimizeButton = el.querySelector('.ia-email-minimize')
@@ -440,6 +451,8 @@ addEventListener('DOMContentLoaded', () => {
 
         populateRow(dropdown, dropdown.value)
         initSelectImage(imageButton)
+        initRemoveImage(removeImageButton)
+        el.querySelectorAll('.ia-email-event-image-wrapper').forEach((wrapper) => syncRemoveImageVisibility(wrapper))
 
         moveRowDownButton.addEventListener('click', (e) => {
             e.preventDefault()
@@ -473,7 +486,12 @@ addEventListener('DOMContentLoaded', () => {
             const imgWrapClone = imgWrap.cloneNode(true)
             if (multiImage.checked) {
                 imgWrap.after(imgWrapClone)
+                imgWrapClone.querySelector('.ia-email-event-image-id').value = ''
+                imgWrapClone.querySelector('.ia-email-event-image-preview').src = ''
+                imgWrapClone.querySelector('.ia-email-event-image-image-id').value = ''
                 initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
+                initRemoveImage(imgWrapClone.querySelector('.ia-email-remove-image'))
+                syncRemoveImageVisibility(imgWrapClone)
             } else {
                 imgWrap.nextElementSibling.remove()
             }
@@ -531,11 +549,51 @@ addEventListener('DOMContentLoaded', () => {
                 attachment = file_frame.state().get('selection').first().toJSON()
                 el.parentElement.getElementsByClassName("ia-email-event-image-preview")[0].src = attachment.url
                 el.parentElement.getElementsByClassName("ia-email-event-image-image-id")[0].value = attachment.id
+                syncRemoveImageVisibility(el.closest('.ia-email-event-image-wrapper'))
                 wp.media.model.settings.post.id = wp_media_post_id
                 const dirtyRow = el.closest('.ia-email-events-row')
                 if (dirtyRow) dirtyRow.dataset.dirty = 'true'
+                markUnsavedChanges()
             })
             file_frame.open()
+        })
+    }
+
+    function syncRemoveImageVisibility(imageWrapper) {
+        if (!imageWrapper) return
+        const removeButton = imageWrapper.querySelector('.ia-email-remove-image')
+        const imageIdInput = imageWrapper.querySelector('.ia-email-event-image-image-id')
+        if (!removeButton || !imageIdInput) return
+
+        removeButton.style.display = imageIdInput.value ? '' : 'none'
+    }
+
+    function initRemoveImage(el) {
+        if (!el) return
+
+        el.addEventListener('click', (e) => {
+            e.preventDefault()
+
+            const imageWrapper = el.closest('.ia-email-event-image-wrapper')
+            if (!imageWrapper) return
+
+            imageWrapper.querySelector('.ia-email-event-image-preview').src = ''
+            imageWrapper.querySelector('.ia-email-event-image-image-id').value = ''
+            syncRemoveImageVisibility(imageWrapper)
+
+            const row = el.closest('.ia-email-events-row')
+            if (row) {
+                row.dataset.dirty = 'true'
+                const imageWrappers = row.querySelectorAll('.ia-email-event-image-wrapper')
+                const isSecondaryImage = imageWrappers.length > 1 && imageWrappers[0] !== imageWrapper
+                if (isSecondaryImage) {
+                    imageWrapper.remove()
+                    const twoImagesToggle = row.querySelector('[name="ia-email-events[][event-two-imgs]"]')
+                    if (twoImagesToggle) twoImagesToggle.checked = false
+                }
+            }
+
+            markUnsavedChanges()
         })
     }
 

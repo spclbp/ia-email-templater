@@ -129,6 +129,7 @@ if (!empty($_POST)) {
                                                 <img src="" alt="Event Image Preview" class="ia-email-event-image-preview">
                                                 <input type="hidden" name="ia-email-events[][event-image-image-id][]" class="ia-email-event-image-image-id" value="">
                                                 <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
+                                                <input type="button" value="Remove Image" class="ia-email-button ia-email-remove-image">
                                             </div>
                                             <?php
                                         } else {
@@ -138,6 +139,7 @@ if (!empty($_POST)) {
                                                     <input type="hidden" name="ia-email-events[][event-image-id][]" class="ia-email-event-image-id" value="<?php echo $event_img->id; ?>">
                                                     <input type="hidden" name="ia-email-events[][event-image-image-id][]" class="ia-email-event-image-image-id" value="<?php echo $event_img->event_img_id; ?>">
                                                     <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
+                                                    <input type="button" value="Remove Image" class="ia-email-button ia-email-remove-image">
                                                 </div>
                                         <?php
                                             }

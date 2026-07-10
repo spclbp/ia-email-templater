@@ -214,7 +214,8 @@ input:checked+.slider:before {
 
 .ia-email-event-image-wrapper {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr auto auto;
+    gap: .5rem;
     align-items: center;
 }
 
