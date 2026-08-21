@@ -112,6 +112,17 @@ if (!function_exists('esc_attr')) {
     }
 }
 
+if (!function_exists('esc_url')) {
+    function esc_url($url)
+    {
+        return $url;
+    }
+}
+
+if (!defined('DB_NAME')) {
+    define('DB_NAME', '');
+}
+
 if (!function_exists('get_the_title')) {
     function get_the_title($post = 0)
     {

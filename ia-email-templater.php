@@ -2,7 +2,7 @@
 /*
 Plugin Name: Indy Ambassadors Email Templater
 Description: A custom plugin for generating the weekly newsletter by Indy Ambassadors. Requires The Events Calendar Plugin.
-Version: 1.9.1
+Version: 1.10.0
 Requires at least: 6.0
 Requires PHP: 5.6
 Author: Josh Klein
@@ -83,6 +83,7 @@ function ia_email_install()
             id int NOT NULL AUTO_INCREMENT,
             event_id int NOT NULL,
             event_img_id int NOT NULL,
+            event_img_link varchar(512) DEFAULT '' NOT NULL,
             PRIMARY KEY  (id),
             FOREIGN KEY  (event_id) REFERENCES $table_events (id)
       )"
@@ -144,7 +145,8 @@ function ia_email_install_data()
         $table_event_imgs,
         array(
             'event_id' => $last_id,
-            'event_img_id' => ''
+            'event_img_id' => '',
+            'event_img_link' => ''
         )
     );
 
@@ -159,6 +161,26 @@ function ia_email_install_data()
 }
 register_activation_hook(__FILE__, 'ia_email_install');
 register_activation_hook(__FILE__, 'ia_email_install_data');
+
+// Adds columns introduced after initial release for sites that already have the tables installed.
+function ia_email_maybe_upgrade_db()
+{
+    global $wpdb;
+    $table_event_imgs = $wpdb->prefix . 'ia_email_event_imgs';
+
+    $column_exists = $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'event_img_link'",
+            DB_NAME,
+            $table_event_imgs
+        )
+    );
+
+    if (intval($column_exists) === 0) {
+        $wpdb->query("ALTER TABLE $table_event_imgs ADD COLUMN event_img_link varchar(512) DEFAULT '' NOT NULL");
+    }
+}
+add_action('plugins_loaded', 'ia_email_maybe_upgrade_db');
 
 function ia_email_post($post)
 {
@@ -217,6 +239,8 @@ function ia_email_post($post)
             } elseif (key($v) == 'event-image-image-id') {
                 $events[$index]['images'][$img_index]['event-image-image-id'] = $v[key($v)][0];
                 //$events[$index]['images'][$img_index]->eventImageImageId=$v[key($v)];
+            } elseif (key($v) == 'event-image-link') {
+                $events[$index]['images'][$img_index]['event-image-link'] = $v[key($v)][0];
             } elseif (array_key_exists('event-button', $events[$index]) && key($v) == 'event-button') {
                 $events[$index]['event-button'] = array_merge_recursive($events[$index]['event-button'], $v[key($v)]);
             } elseif (array_key_exists(key($v), $events[$index])) {
@@ -403,6 +427,7 @@ function ia_email_post($post)
                             $table_event_imgs,
                             array(
                                 'event_img_id' => $event['images'][$i]['event-image-image-id'],
+                                'event_img_link' => $event['images'][$i]['event-image-link'] ?? '',
                             ),
                             array('id' => $event['images'][$i]['event-image-id'])
                         );
@@ -412,7 +437,8 @@ function ia_email_post($post)
                         $table_event_imgs,
                         array(
                             'event_id' => $event_id,
-                            'event_img_id' => $event['images'][$i]['event-image-image-id']
+                            'event_img_id' => $event['images'][$i]['event-image-image-id'],
+                            'event_img_link' => $event['images'][$i]['event-image-link'] ?? ''
                         )
                     );
                 }

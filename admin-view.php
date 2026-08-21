@@ -13,6 +13,18 @@ if (!function_exists('ia_email_strip_emojis')) {
     }
 }
 
+if (!function_exists('ia_email_wrap_img_link')) {
+    function ia_email_wrap_img_link($link, $img_html)
+    {
+        $link = trim((string) stripslashes($link));
+        if ($link === '') {
+            return $img_html;
+        }
+
+        return '<a href="' . esc_url($link) . '" style="border: none;">' . $img_html . '</a>';
+    }
+}
+
 if (!empty($_POST)) {
     ia_email_post($_POST);
 }
@@ -130,6 +142,8 @@ if (!empty($_POST)) {
                                                 <input type="hidden" name="ia-email-events[][event-image-image-id][]" class="ia-email-event-image-image-id" value="">
                                                 <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
                                                 <input type="button" value="Remove Image" class="ia-email-button ia-email-remove-image">
+                                                <label for="ia-email-event-image-link">Image Link (optional)</label>
+                                                <input type="text" name="ia-email-events[][event-image-link][]" class="ia-email-event-image-link" placeholder="https://www.example.com" value="">
                                             </div>
                                             <?php
                                         } else {
@@ -140,6 +154,8 @@ if (!empty($_POST)) {
                                                     <input type="hidden" name="ia-email-events[][event-image-image-id][]" class="ia-email-event-image-image-id" value="<?php echo $event_img->event_img_id; ?>">
                                                     <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image">
                                                     <input type="button" value="Remove Image" class="ia-email-button ia-email-remove-image">
+                                                    <label for="ia-email-event-image-link">Image Link (optional)</label>
+                                                    <input type="text" name="ia-email-events[][event-image-link][]" class="ia-email-event-image-link" placeholder="https://www.example.com" value="<?php echo esc_attr(stripslashes($event_img->event_img_link)); ?>">
                                                 </div>
                                         <?php
                                             }
@@ -285,10 +301,8 @@ if (!empty($_POST)) {
                                                 $float_direction = ($event->event_img_right == 'on') ? 'right' : 'left';
                                                 if (count($event_imgs) > 1) { ?>
                                                     <div>
-                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="23%" alt="" 
-                                                        style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 0px 2px 2px;" />
-                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full'); ?>" width="23%" alt="" 
-                                                        style="display: inline; width: 32%; max-width: 99px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo ia_email_wrap_img_link($event_imgs[0]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full') . '" width="23%" alt="" style="display: inline; width: 32%; max-width: 99px; height: auto; float: ' . $float_direction . '; margin: 0px 0px 2px 2px;" />'); ?>
+                                                        <?php echo ia_email_wrap_img_link($event_imgs[1]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full') . '" width="23%" alt="" style="display: inline; width: 32%; max-width: 99px; height: auto; float: ' . $float_direction . '; margin: 0px 10px 2px 2px;" />'); ?>
                                                         <?php echo $event_text;  ?>
                                                     </div>
                                                     <?php
@@ -296,12 +310,10 @@ if (!empty($_POST)) {
                                                     <?php $event_words = preg_split('/\s+/', $event_text);
                                                     if (count($event_words) > 75) {
                                                         echo implode(" ", array_slice($event_words,0,18)); ?>
-                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
-                                                            style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo ia_email_wrap_img_link($event_imgs[0]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full') . '" width="47%" alt="" style="display: block; width: 65%; max-width: 200px; height: auto; float: ' . $float_direction . '; margin: 0px 10px 2px 2px;" />'); ?>
                                                         <?php echo implode(" ", array_slice($event_words, 18)); 
                                                     } else { ?>
-                                                        <img src="<?php echo wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full'); ?>" width="47%" alt="" 
-                                                            style="display: block; width: 65%; max-width: 200px; height: auto; float: <?php echo $float_direction; ?>; margin: 0px 10px 2px 2px;" />
+                                                        <?php echo ia_email_wrap_img_link($event_imgs[0]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full') . '" width="47%" alt="" style="display: block; width: 65%; max-width: 200px; height: auto; float: ' . $float_direction . '; margin: 0px 10px 2px 2px;" />'); ?>
                                                         <?php echo $event_text;    
                                                     }
                                                 } else { 

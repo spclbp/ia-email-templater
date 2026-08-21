@@ -219,6 +219,17 @@ input:checked+.slider:before {
     align-items: center;
 }
 
+.ia-email-event-image-wrapper label {
+    grid-column: 1 / -1;
+    margin-top: -.25rem;
+}
+
+.ia-email-event-image-link {
+    grid-column: 1 / -1;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .ia-email-event-image-preview {
     max-height: 200px;
     max-width: 100%;

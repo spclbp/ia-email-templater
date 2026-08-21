@@ -236,11 +236,13 @@ addEventListener('DOMContentLoaded', () => {
                 if (elImages.length > 1) {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
+                    elImages[0].querySelector('.ia-email-event-image-link').value = ''
                     syncRemoveImageVisibility(elImages[0])
                     elImages[1].remove()
                 } else {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
+                    elImages[0].querySelector('.ia-email-event-image-link').value = ''
                     syncRemoveImageVisibility(elImages[0])
                 }
                 elTwoImages.checked = false
@@ -272,11 +274,13 @@ addEventListener('DOMContentLoaded', () => {
             if (elImages.length > 1) {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
                 elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
+                elImages[0].querySelector('.ia-email-event-image-link').value = ''
                 syncRemoveImageVisibility(elImages[0])
                 elImages[1].remove()
             } else {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
                 elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
+                elImages[0].querySelector('.ia-email-event-image-link').value = ''
                 syncRemoveImageVisibility(elImages[0])
             }
             elTwoImages.checked = false
@@ -350,6 +354,7 @@ addEventListener('DOMContentLoaded', () => {
                     imgWrapClone.querySelector('.ia-email-event-image-id').value = ''
                     imgWrapClone.querySelector('.ia-email-event-image-preview').src = ''
                     imgWrapClone.querySelector('.ia-email-event-image-image-id').value = ''
+                    imgWrapClone.querySelector('.ia-email-event-image-link').value = ''
                     initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
                     initRemoveImage(imgWrapClone.querySelector('.ia-email-remove-image'))
                     syncRemoveImageVisibility(imgWrapClone)
@@ -427,6 +432,7 @@ addEventListener('DOMContentLoaded', () => {
         //CLB 1/25/25 - incremental saves
         el.querySelector('.ia-email-event-id').value = ''
         el.querySelector('.ia-email-event-image-image-id').value = ''
+        el.querySelector('.ia-email-event-image-link').value = ''
         //CLB 1/25/25 - incremental saves
 
         let imageButton = el.querySelector('.ia-email-select-image')
@@ -495,6 +501,7 @@ addEventListener('DOMContentLoaded', () => {
                 imgWrapClone.querySelector('.ia-email-event-image-id').value = ''
                 imgWrapClone.querySelector('.ia-email-event-image-preview').src = ''
                 imgWrapClone.querySelector('.ia-email-event-image-image-id').value = ''
+                imgWrapClone.querySelector('.ia-email-event-image-link').value = ''
                 initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
                 initRemoveImage(imgWrapClone.querySelector('.ia-email-remove-image'))
                 syncRemoveImageVisibility(imgWrapClone)
@@ -585,6 +592,7 @@ addEventListener('DOMContentLoaded', () => {
 
             imageWrapper.querySelector('.ia-email-event-image-preview').src = ''
             imageWrapper.querySelector('.ia-email-event-image-image-id').value = ''
+            imageWrapper.querySelector('.ia-email-event-image-link').value = ''
             syncRemoveImageVisibility(imageWrapper)
 
             const row = el.closest('.ia-email-events-row')
