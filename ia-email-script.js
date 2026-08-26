@@ -214,6 +214,7 @@ addEventListener('DOMContentLoaded', () => {
                 const eventButtonLink = (typeof data.website === 'string' && data.website.trim())
                     ? data.website.trim()
                     : eventUrl
+                const primaryImageLink = volunteerLink || eventButtonLink || ''
 
                 const buttonConfigs = []
                 if (volunteerLink) {
@@ -236,13 +237,13 @@ addEventListener('DOMContentLoaded', () => {
                 if (elImages.length > 1) {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
-                    elImages[0].querySelector('.ia-email-event-image-link').value = ''
+                    elImages[0].querySelector('.ia-email-event-image-link').value = primaryImageLink
                     syncRemoveImageVisibility(elImages[0])
                     elImages[1].remove()
                 } else {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
-                    elImages[0].querySelector('.ia-email-event-image-link').value = ''
+                    elImages[0].querySelector('.ia-email-event-image-link').value = primaryImageLink
                     syncRemoveImageVisibility(elImages[0])
                 }
                 elTwoImages.checked = false
