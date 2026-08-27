@@ -25,6 +25,36 @@ if (!function_exists('ia_email_wrap_img_link')) {
     }
 }
 
+if (!function_exists('ia_email_normalize_emoji_images')) {
+    function ia_email_normalize_emoji_images($html)
+    {
+        return preg_replace_callback('/<img\b[^>]*>/i', function ($matches) {
+            $img_html = $matches[0];
+            if (!preg_match('/\bclass\s*=\s*(["\'])(.*?)\1/i', $img_html, $class_match)) {
+                return $img_html;
+            }
+
+            $classes = preg_split('/\s+/', trim($class_match[2]));
+            if (!in_array('emoji', $classes, true) && !in_array('wp-smiley', $classes, true)) {
+                return $img_html;
+            }
+
+            $emoji_style = 'width: 1em !important; height: 1em !important; max-width: none !important; display: inline !important; vertical-align: -.1em;';
+            if (preg_match('/\bstyle\s*=\s*(["\'])(.*?)\1/i', $img_html, $style_match)) {
+                $style = rtrim($style_match[2], '; ') . '; ' . $emoji_style;
+                return preg_replace(
+                    '/\bstyle\s*=\s*(["\'])(.*?)\1/i',
+                    'style=' . $style_match[1] . $style . $style_match[1],
+                    $img_html,
+                    1
+                );
+            }
+
+            return preg_replace('/\s*\/?>$/', ' style="' . $emoji_style . '" />', $img_html, 1);
+        }, $html);
+    }
+}
+
 if (!empty($_POST)) {
     ia_email_post($_POST);
 }
@@ -259,13 +289,13 @@ if (!empty($_POST)) {
                                             <span style="font-size: 36px; font-weight: bold;"><?php echo $featured_event_header; ?></span><br />
                                         </div>
                                         <div style="text-align: center; font-size: 14px; line-height: 1;">
-                                            <?php echo stripslashes($event->event_text); ?>
+                                            <?php echo ia_email_normalize_emoji_images(stripslashes($event->event_text)); ?>
                                         </div>
                                         </td></tr>
                                     <?php
                                     } else {
                                         $event_header = $featured_event_header;
-                                        $event_text=stripslashes($event->event_text);
+                                        $event_text=ia_email_normalize_emoji_images(stripslashes($event->event_text));
                                         if (empty($event_text) && !empty($event_header)) {
                                             ?><span style="font-size: 0px;"><?php echo $event_header;?></span><?php
                                         } elseif (!empty($event_header)) { ?>

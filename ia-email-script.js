@@ -18,6 +18,18 @@ addEventListener('DOMContentLoaded', () => {
         return (doc.body.textContent || '').replace(/\s+/g, ' ').trim()
     }
 
+    const getEmailHtml = () => {
+        const preview = document.querySelector('#the-preview').cloneNode(true)
+        preview.querySelectorAll('img.emoji, img.wp-smiley').forEach((image) => {
+            image.style.width = '1em'
+            image.style.height = '1em'
+            image.style.maxWidth = 'none'
+            image.style.display = 'inline'
+            image.style.verticalAlign = '-.1em'
+        })
+        return preview.innerHTML
+    }
+
     getEvents()
     currentRows()
     capturePositions()
@@ -854,11 +866,11 @@ addEventListener('DOMContentLoaded', () => {
 
     document.querySelector('#copy-code').addEventListener('click', (e) => {
         e.preventDefault()
-        navigator.clipboard.writeText(document.querySelector('#the-preview').innerHTML)
+        navigator.clipboard.writeText(getEmailHtml())
         document.querySelector('#copy-code').classList.add('green-pulse')
     })
 
-    document.querySelector('#the-code').textContent = document.querySelector('#the-preview').innerHTML
+    document.querySelector('#the-code').textContent = getEmailHtml()
 
     document.querySelector('#toggle-code').addEventListener('click', (e) => {
         e.preventDefault()
