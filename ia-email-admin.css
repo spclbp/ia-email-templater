@@ -136,6 +136,12 @@ textarea {
     object-fit: cover;
 }
 
+.ia-email-event-promotional-photo-preview {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
 .ia-email-events-get-tec {
     margin-top: .5rem;
 }

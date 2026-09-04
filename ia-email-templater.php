@@ -37,6 +37,93 @@ function ia_email_templater_enqueue()
 }
 add_action('admin_enqueue_scripts', 'ia_email_templater_enqueue');
 
+function ia_email_event_promotional_photo_meta_box()
+{
+    add_meta_box(
+        'ia-email-event-promotional-photo',
+        'Newsletter Promotional Photo',
+        'ia_email_render_event_promotional_photo_meta_box',
+        'tribe_events',
+        'side',
+        'default'
+    );
+}
+add_action('add_meta_boxes_tribe_events', 'ia_email_event_promotional_photo_meta_box');
+
+function ia_email_render_event_promotional_photo_meta_box($post)
+{
+    $photo_id = intval(get_post_meta($post->ID, 'ia_email_promotional_image_id', true));
+    wp_nonce_field('ia_email_save_promotional_photo', 'ia_email_promotional_photo_nonce');
+    ?>
+    <div class="ia-email-event-promotional-photo">
+        <img src="<?php echo esc_url(wp_get_attachment_image_url($photo_id, 'medium')); ?>" alt="Newsletter Promotional Photo Preview" class="ia-email-event-promotional-photo-preview">
+        <input type="hidden" name="ia_email_promotional_image_id" class="ia-email-promotional-image-id" value="<?php echo $photo_id; ?>">
+        <p>
+            <button type="button" class="button ia-email-select-promotional-image">Set promotional photo</button>
+            <button type="button" class="button ia-email-remove-promotional-image" <?php echo $photo_id ? '' : 'style="display:none;"'; ?>>Remove</button>
+        </p>
+    </div>
+    <?php
+}
+
+function ia_email_save_event_promotional_photo($post_id)
+{
+    if (!isset($_POST['ia_email_promotional_photo_nonce']) || !wp_verify_nonce($_POST['ia_email_promotional_photo_nonce'], 'ia_email_save_promotional_photo')) {
+        return;
+    }
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+
+    $photo_id = isset($_POST['ia_email_promotional_image_id']) ? intval($_POST['ia_email_promotional_image_id']) : 0;
+    if ($photo_id > 0) {
+        update_post_meta($post_id, 'ia_email_promotional_image_id', $photo_id);
+    } else {
+        delete_post_meta($post_id, 'ia_email_promotional_image_id');
+    }
+}
+add_action('save_post_tribe_events', 'ia_email_save_event_promotional_photo');
+
+function ia_email_register_promotional_photo_rest_field()
+{
+    register_rest_field(
+        'tribe_events',
+        'ia_email_promotional_image',
+        array(
+            'get_callback' => function ($event) {
+                $photo_id = intval(get_post_meta($event['id'], 'ia_email_promotional_image_id', true));
+                return array(
+                    'id' => $photo_id,
+                    'url' => $photo_id ? wp_get_attachment_image_url($photo_id, 'full') : ''
+                );
+            },
+            'schema' => array(
+                'description' => 'Newsletter promotional photo for the event.',
+                'type' => 'object',
+                'context' => array('view', 'edit')
+            )
+        )
+    );
+}
+add_action('rest_api_init', 'ia_email_register_promotional_photo_rest_field');
+
+function ia_email_add_promotional_photo_to_event_rest_response($data, $event_id = 0)
+{
+    $event_id = $event_id ? intval($event_id) : (isset($data['id']) ? intval($data['id']) : 0);
+    $photo_id = intval(get_post_meta($event_id, 'ia_email_promotional_image_id', true));
+    $data['ia_email_promotional_image'] = array(
+        'id' => $photo_id,
+        'url' => $photo_id ? wp_get_attachment_image_url($photo_id, 'full') : ''
+    );
+
+    return $data;
+}
+add_filter('tribe_rest_event_data', 'ia_email_add_promotional_photo_to_event_rest_response', 10, 2);
+add_filter('tribe_rest_single_event_data', 'ia_email_add_promotional_photo_to_event_rest_response', 10, 2);
+
 function ia_email_install()
 {
     global $wpdb;
@@ -168,7 +255,7 @@ function ia_email_maybe_upgrade_db()
     global $wpdb;
     $table_event_imgs = $wpdb->prefix . 'ia_email_event_imgs';
 
-    $column_exists = $wpdb->get_var(
+    $image_link_exists = $wpdb->get_var(
         $wpdb->prepare(
             "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'event_img_link'",
             DB_NAME,
@@ -176,7 +263,7 @@ function ia_email_maybe_upgrade_db()
         )
     );
 
-    if (intval($column_exists) === 0) {
+    if (intval($image_link_exists) === 0) {
         $wpdb->query("ALTER TABLE $table_event_imgs ADD COLUMN event_img_link varchar(512) DEFAULT '' NOT NULL");
     }
 }

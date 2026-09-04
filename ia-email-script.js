@@ -8,6 +8,11 @@ addEventListener('DOMContentLoaded', () => {
     let hasUnsavedChanges = false
     let bypassUnloadWarning = false
 
+    const promotionalImageButton = document.querySelector('.ia-email-select-promotional-image')
+    if (promotionalImageButton) initPromotionalImagePicker(promotionalImageButton)
+
+    if (!addEventButton || !form) return
+
     const markUnsavedChanges = () => {
         hasUnsavedChanges = true
     }
@@ -87,7 +92,17 @@ addEventListener('DOMContentLoaded', () => {
         let elTwoImages = elParent.querySelector('[name="ia-email-events[][event-two-imgs]"]')
         let elButtonRows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
         if (id != 'none') {
-            fetch(`https://www.indyambassadors.org/wp-json/tribe/events/v1/events/${id}`).then(res => res.json()).then(data => {
+            fetch(`https://www.indyambassadors.org/wp-json/tribe/events/v1/events/${id}`).then(res => res.json()).then(async data => {
+                let promotionalImage = data.ia_email_promotional_image
+                try {
+                    const postResponse = await fetch(`https://www.indyambassadors.org/wp-json/wp/v2/tribe_events/${id}`)
+                    if (postResponse.ok) {
+                        const postData = await postResponse.json()
+                        promotionalImage = postData.ia_email_promotional_image || promotionalImage
+                    }
+                } catch (error) {
+                }
+
                 const getPlainTextValue = (value) => {
                     if (typeof value === 'string') return value
                     if (value && typeof value.rendered === 'string') return value.rendered
@@ -219,7 +234,9 @@ addEventListener('DOMContentLoaded', () => {
                 }
 
                 const eventTitle = getPlainTextValue(data.title)
-                const selectedImage = pickImage(data.image)
+                const selectedImage = pickImage(promotionalImage && (promotionalImage.id || promotionalImage.url)
+                    ? promotionalImage
+                    : data.image)
                 const volunteerLink = getVolunteerLinkFromCustomFields(data.custom_fields)
                 const organizerUrl = getOrganizerUrl(data.organizer)
                 const eventUrl = (typeof data.url === 'string' && data.url.trim()) ? data.url.trim() : ''
@@ -582,6 +599,42 @@ addEventListener('DOMContentLoaded', () => {
                 markUnsavedChanges()
             })
             file_frame.open()
+        })
+    }
+
+    function initPromotionalImagePicker(el) {
+        let file_frame
+        const wrapper = el.closest('.ia-email-event-promotional-photo')
+        const preview = wrapper.querySelector('.ia-email-event-promotional-photo-preview')
+        const imageId = wrapper.querySelector('.ia-email-promotional-image-id')
+        const removeButton = wrapper.querySelector('.ia-email-remove-promotional-image')
+
+        el.addEventListener('click', (e) => {
+            e.preventDefault()
+
+            if (!file_frame) {
+                file_frame = wp.media({
+                    title: 'Set promotional photo',
+                    button: { text: 'Use this photo' },
+                    multiple: false
+                })
+
+                file_frame.on('select', () => {
+                    const attachment = file_frame.state().get('selection').first().toJSON()
+                    preview.src = attachment.url
+                    imageId.value = attachment.id
+                    removeButton.style.display = ''
+                })
+            }
+
+            file_frame.open()
+        })
+
+        removeButton.addEventListener('click', (e) => {
+            e.preventDefault()
+            preview.src = ''
+            imageId.value = ''
+            removeButton.style.display = 'none'
         })
     }
 
