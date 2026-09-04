@@ -91,6 +91,7 @@ addEventListener('DOMContentLoaded', () => {
         let elButtonText = elParent.querySelector('[name="ia-email-events[][event-button][text][]"]')
         let elLink = elParent.querySelector('[name="ia-email-events[][event-button][link][]"]')
         let elTwoImages = elParent.querySelector('[name="ia-email-events[][event-two-imgs]"]')
+        let elMute = elParent.querySelector('[name="ia-email-events[][event-mute]"]')
         let elButtonRows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
         if (id != 'none') {
             fetch(`https://www.indyambassadors.org/wp-json/tribe/events/v1/events/${id}`).then(res => res.json()).then(async data => {
@@ -266,6 +267,8 @@ addEventListener('DOMContentLoaded', () => {
 
                 rowLabel.textContent = toPlainText(newsletterTitle)
                 elHeader.value = newsletterTitle
+                elMute.checked = false
+                handleMute(elMute)
                 if (elImages.length > 1) {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
