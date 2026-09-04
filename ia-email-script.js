@@ -10,6 +10,7 @@ addEventListener('DOMContentLoaded', () => {
 
     const promotionalImageButton = document.querySelector('.ia-email-select-promotional-image')
     if (promotionalImageButton) initPromotionalImagePicker(promotionalImageButton)
+    initEventEmojiPicker()
 
     if (!addEventButton || !form) return
 
@@ -99,6 +100,7 @@ addEventListener('DOMContentLoaded', () => {
                     if (postResponse.ok) {
                         const postData = await postResponse.json()
                         promotionalImage = postData.ia_email_promotional_image || promotionalImage
+                        data.ia_email_event_emoji = postData.ia_email_event_emoji || data.ia_email_event_emoji
                     }
                 } catch (error) {
                 }
@@ -234,6 +236,7 @@ addEventListener('DOMContentLoaded', () => {
                 }
 
                 const eventTitle = getPlainTextValue(data.title)
+                const newsletterTitle = formatNewsletterEventTitle(data, eventTitle)
                 const selectedImage = pickImage(promotionalImage && (promotionalImage.id || promotionalImage.url)
                     ? promotionalImage
                     : data.image)
@@ -261,8 +264,8 @@ addEventListener('DOMContentLoaded', () => {
                     buttonConfigs.push({ text: 'Organizer', link: organizerUrl })
                 }
 
-                rowLabel.textContent = toPlainText(eventTitle)
-                elHeader.value = eventTitle
+                rowLabel.textContent = toPlainText(newsletterTitle)
+                elHeader.value = newsletterTitle
                 if (elImages.length > 1) {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
@@ -636,6 +639,83 @@ addEventListener('DOMContentLoaded', () => {
             imageId.value = ''
             removeButton.style.display = 'none'
         })
+    }
+
+    function initEventEmojiPicker() {
+        const emojiInput = document.querySelector('#ia_email_event_emoji')
+        const customEmojiInput = document.querySelector('#ia_email_event_emoji_custom')
+        if (!emojiInput) return
+
+        if (customEmojiInput) {
+            customEmojiInput.addEventListener('input', () => {
+                emojiInput.value = customEmojiInput.value.trim()
+                document.querySelectorAll('.ia-email-event-emoji-option').forEach((option) => {
+                    option.classList.toggle('selected', option.dataset.emoji === emojiInput.value)
+                })
+            })
+        }
+
+        document.querySelectorAll('.ia-email-event-emoji-option').forEach((button) => {
+            button.addEventListener('click', () => {
+                emojiInput.value = button.dataset.emoji || ''
+                if (customEmojiInput) customEmojiInput.value = emojiInput.value
+                document.querySelectorAll('.ia-email-event-emoji-option').forEach((option) => option.classList.remove('selected'))
+                button.classList.add('selected')
+            })
+        })
+    }
+
+    function formatNewsletterEventTitle(data, eventTitle) {
+        const emoji = typeof data.ia_email_event_emoji === 'string' ? data.ia_email_event_emoji.trim() : ''
+        const dateText = formatEventDates(data)
+        const venue = data.venue && typeof data.venue.venue === 'string' ? data.venue.venue.trim() : ''
+        return [emoji + ' ' + eventTitle.trim(), dateText, venue].filter(Boolean).join(', ')
+    }
+
+    function formatEventDates(data) {
+        if (data.all_day) {
+            return formatEventDate(data.start_date_details) + (isDifferentEventDay(data) ? '-' + formatEventDate(data.end_date_details) : '')
+        }
+
+        const startDate = formatEventDate(data.start_date_details)
+        const endDate = formatEventDate(data.end_date_details)
+        const startTime = formatEventTime(data.start_date_details, true)
+        const endTime = formatEventTime(data.end_date_details, true)
+        if (!startDate || !startTime) return ''
+        if (!isDifferentEventDay(data)) {
+            const sameMeridiem = getEventMeridiem(data.start_date_details) === getEventMeridiem(data.end_date_details)
+            const displayStartTime = sameMeridiem ? formatEventTime(data.start_date_details, false) : startTime
+            return startDate + ' ' + displayStartTime + '-' + endTime
+        }
+        return startDate + ' ' + startTime + '-' + endDate + ' ' + endTime
+    }
+
+    function formatEventDate(details) {
+        if (!details || !details.year || !details.month || !details.day) return ''
+        const date = new Date(Number(details.year), Number(details.month) - 1, Number(details.day))
+        const weekdays = ['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat']
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+        const day = Number(details.day)
+        const suffix = day % 100 >= 11 && day % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] || 'th')
+        return weekdays[date.getDay()] + ' ' + months[date.getMonth()] + ' ' + day + suffix
+    }
+
+    function formatEventTime(details, includeMeridiem) {
+        if (!details || details.hour === undefined || details.minutes === undefined) return ''
+        const hour = Number(details.hour)
+        const minutes = String(details.minutes).padStart(2, '0')
+        const displayHour = hour % 12 || 12
+        return displayHour + ':' + minutes + (includeMeridiem ? getEventMeridiem(details) : '')
+    }
+
+    function getEventMeridiem(details) {
+        return Number(details.hour) >= 12 ? 'pm' : 'am'
+    }
+
+    function isDifferentEventDay(data) {
+        const start = data.start_date_details
+        const end = data.end_date_details
+        return !start || !end || start.year !== end.year || start.month !== end.month || start.day !== end.day
     }
 
     function syncRemoveImageVisibility(imageWrapper) {

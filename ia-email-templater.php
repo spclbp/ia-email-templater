@@ -53,9 +53,19 @@ add_action('add_meta_boxes_tribe_events', 'ia_email_event_promotional_photo_meta
 function ia_email_render_event_promotional_photo_meta_box($post)
 {
     $photo_id = intval(get_post_meta($post->ID, 'ia_email_promotional_image_id', true));
+    $event_emoji = get_post_meta($post->ID, 'ia_email_event_emoji', true);
     wp_nonce_field('ia_email_save_promotional_photo', 'ia_email_promotional_photo_nonce');
     ?>
     <div class="ia-email-event-promotional-photo">
+        <label for="ia_email_event_emoji"><strong>Newsletter Event Emoji</strong></label>
+        <div class="ia-email-event-emoji-picker">
+            <input type="hidden" name="ia_email_event_emoji" id="ia_email_event_emoji" value="<?php echo esc_attr($event_emoji); ?>">
+            <input type="text" id="ia_email_event_emoji_custom" class="ia-email-event-emoji-custom" value="<?php echo esc_attr($event_emoji); ?>" placeholder="Choose or enter an emoji" aria-label="Custom newsletter event emoji">
+            <?php foreach (array('📅', '🙌', '🏃', '🎉', '🌳', '🧹', '❤️', '📣') as $emoji) { ?>
+                <button type="button" class="button ia-email-event-emoji-option<?php echo $event_emoji === $emoji ? ' selected' : ''; ?>" data-emoji="<?php echo esc_attr($emoji); ?>" aria-label="Use <?php echo esc_attr($emoji); ?> emoji"><?php echo esc_html($emoji); ?></button>
+            <?php } ?>
+        </div>
+        <p class="description">Choose the emoji used in the newsletter event title.</p>
         <img src="<?php echo esc_url(wp_get_attachment_image_url($photo_id, 'medium')); ?>" alt="Newsletter Promotional Photo Preview" class="ia-email-event-promotional-photo-preview">
         <input type="hidden" name="ia_email_promotional_image_id" class="ia-email-promotional-image-id" value="<?php echo $photo_id; ?>">
         <p>
@@ -79,16 +89,37 @@ function ia_email_save_event_promotional_photo($post_id)
     }
 
     $photo_id = isset($_POST['ia_email_promotional_image_id']) ? intval($_POST['ia_email_promotional_image_id']) : 0;
+    $event_emoji = isset($_POST['ia_email_event_emoji']) ? sanitize_text_field($_POST['ia_email_event_emoji']) : '';
     if ($photo_id > 0) {
         update_post_meta($post_id, 'ia_email_promotional_image_id', $photo_id);
     } else {
         delete_post_meta($post_id, 'ia_email_promotional_image_id');
+    }
+    if ($event_emoji !== '') {
+        update_post_meta($post_id, 'ia_email_event_emoji', $event_emoji);
+    } else {
+        delete_post_meta($post_id, 'ia_email_event_emoji');
     }
 }
 add_action('save_post_tribe_events', 'ia_email_save_event_promotional_photo');
 
 function ia_email_register_promotional_photo_rest_field()
 {
+    register_rest_field(
+        'tribe_events',
+        'ia_email_event_emoji',
+        array(
+            'get_callback' => function ($event) {
+                return get_post_meta($event['id'], 'ia_email_event_emoji', true);
+            },
+            'schema' => array(
+                'description' => 'Emoji used in the newsletter event title.',
+                'type' => 'string',
+                'context' => array('view', 'edit')
+            )
+        )
+    );
+
     register_rest_field(
         'tribe_events',
         'ia_email_promotional_image',
@@ -114,6 +145,7 @@ function ia_email_add_promotional_photo_to_event_rest_response($data, $event_id 
 {
     $event_id = $event_id ? intval($event_id) : (isset($data['id']) ? intval($data['id']) : 0);
     $photo_id = intval(get_post_meta($event_id, 'ia_email_promotional_image_id', true));
+    $data['ia_email_event_emoji'] = get_post_meta($event_id, 'ia_email_event_emoji', true);
     $data['ia_email_promotional_image'] = array(
         'id' => $photo_id,
         'url' => $photo_id ? wp_get_attachment_image_url($photo_id, 'full') : ''

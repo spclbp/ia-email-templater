@@ -74,6 +74,13 @@ if (!function_exists('current_user_can')) {
     }
 }
 
+if (!function_exists('sanitize_text_field')) {
+    function sanitize_text_field($text)
+    {
+        return $text;
+    }
+}
+
 if (!function_exists('add_menu_page')) {
     function add_menu_page(
         $page_title,
