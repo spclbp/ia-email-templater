@@ -260,6 +260,7 @@ if (!empty($_POST)) {
                         <button id="add-event" class="ia-email-button">Add Row</button>
                         <input type="submit" value="Save" id="ia-email-save" class="ia-email-button">
                         <button id="copy-code" class="ia-email-button">Copy Code to Clipboard</button>
+                        <button id="copy-substack" class="ia-email-button">Copy for Substack</button>
                     </div>
                 </div>
             </form>

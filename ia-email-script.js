@@ -36,6 +36,264 @@ addEventListener('DOMContentLoaded', () => {
         return preview.innerHTML
     }
 
+    const getSubstackHtml = () => {
+        const root = document.querySelector('#the-preview').cloneNode(true)
+        const isBlockTag = (el) => /^(P|H[1-6]|UL|OL|BLOCKQUOTE|HR)$/.test(el.tagName)
+        const isImageBlock = (el) => el.tagName === 'IMG' || (el.tagName === 'A' && el.children.length === 1 && el.firstElementChild.tagName === 'IMG' && !el.textContent.trim())
+
+        root.querySelectorAll('img.emoji, img.wp-smiley').forEach((image) => {
+            image.replaceWith(document.createTextNode(image.getAttribute('alt') || ''))
+        })
+        root.querySelectorAll('span[style*="font-size: 0px"]').forEach((el) => el.remove())
+
+        root.querySelectorAll('a[style*="border: 4px solid"]').forEach((a) => {
+            a.dataset.button = '1'
+            a.textContent = a.textContent.trim()
+        })
+
+        root.querySelectorAll('tr[style*="Gainsboro"] span[style*="36px"]').forEach((span) => {
+            const h = document.createElement('h2')
+            h.textContent = span.textContent.trim()
+            span.closest('tr').replaceWith(h)
+        })
+        root.querySelectorAll('h3').forEach((h3) => {
+            const h = document.createElement('h3')
+            h.innerHTML = h3.innerHTML
+            h3.replaceWith(h)
+        })
+
+        root.querySelectorAll('table table').forEach((table) => {
+            const ul = document.createElement('ul')
+            table.querySelectorAll('a').forEach((a) => {
+                const li = document.createElement('li')
+                li.appendChild(a.cloneNode(true))
+                ul.appendChild(li)
+            })
+            table.replaceWith(ul)
+        })
+
+        const unwrapTags = 'table, tbody, thead, tfoot, tr, td, th, div, span, nobr, font, center'
+        let wrapper
+        while ((wrapper = root.querySelector(unwrapTags))) wrapper.replaceWith(...wrapper.childNodes)
+
+        const out = document.createElement('div')
+        let run = null
+        const flushRun = () => {
+            if (run && run.textContent.trim() !== '') out.appendChild(run)
+            run = null
+        }
+        const addToRun = (node) => {
+            if (!run) run = document.createElement('p')
+            run.appendChild(node)
+        }
+
+        Array.from(root.childNodes).forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'BR' && (isBlockTag(node) || isImageBlock(node))) {
+                flushRun()
+                if (isImageBlock(node)) {
+                    const p = document.createElement('p')
+                    p.appendChild(node)
+                    out.appendChild(p)
+                } else {
+                    out.appendChild(node)
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE && node.dataset && node.dataset.button) {
+                flushRun()
+                const last = out.lastElementChild
+                if (last && last.dataset && last.dataset.buttons) {
+                    last.appendChild(document.createTextNode(' | '))
+                    last.appendChild(node)
+                } else {
+                    const p = document.createElement('p')
+                    p.dataset.buttons = '1'
+                    p.appendChild(node)
+                    out.appendChild(p)
+                }
+            } else if (node.nodeType === Node.COMMENT_NODE) {
+                return
+            } else if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() === '' && !run) {
+                return
+            } else {
+                addToRun(node)
+            }
+        })
+        flushRun()
+
+        out.querySelectorAll('p').forEach((p) => {
+            p.querySelectorAll(':scope > p').forEach((inner) => inner.replaceWith(...inner.childNodes))
+        })
+        out.querySelectorAll('*').forEach((el) => {
+            const keep = { A: ['href'], IMG: ['src', 'alt'] }[el.tagName] || []
+            Array.from(el.attributes).forEach((attr) => {
+                if (!keep.includes(attr.name)) el.removeAttribute(attr.name)
+            })
+        })
+        out.querySelectorAll('p:empty').forEach((p) => p.remove())
+        return out.innerHTML
+    }
+
+    const getSubstackDocument = () => {
+        const doc = new DOMParser().parseFromString(getSubstackHtml(), 'text/html')
+        const blockTags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'BLOCKQUOTE', 'IMG'])
+
+        const getMarks = (element, inheritedMarks) => {
+            const marks = inheritedMarks.map(mark => ({ type: mark.type, attrs: mark.attrs ? { ...mark.attrs } : undefined }))
+            let current = element
+            while (current && current.nodeType === Node.ELEMENT_NODE) {
+                if (current.tagName === 'STRONG' || current.tagName === 'B') {
+                    if (!marks.some(mark => mark.type === 'bold')) marks.push({ type: 'bold' })
+                }
+                if (current.tagName === 'EM' || current.tagName === 'I') {
+                    if (!marks.some(mark => mark.type === 'italic')) marks.push({ type: 'italic' })
+                }
+                if (current.tagName === 'A' && current.getAttribute('href')) {
+                    marks.push({
+                        type: 'link',
+                        attrs: {
+                            href: current.getAttribute('href'),
+                            target: current.getAttribute('target') || null,
+                            rel: current.getAttribute('rel') || null,
+                            class: current.getAttribute('class') || null
+                        }
+                    })
+                }
+                current = current.parentElement
+            }
+            return marks
+        }
+
+        const inlineContent = (parent, inheritedMarks = []) => {
+            const content = []
+            Array.from(parent.childNodes).forEach((child) => {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    const text = child.textContent.replace(/\s+/g, ' ')
+                    if (text.trim()) {
+                        const marks = getMarks(child.parentElement, inheritedMarks)
+                        content.push({
+                            type: 'text',
+                            text,
+                            ...(marks.length
+                                ? { marks }
+                                : {})
+                        })
+                    } else if (content.length && child.nextSibling && child.nextSibling.nodeType === Node.ELEMENT_NODE && !blockTags.has(child.nextSibling.tagName)) {
+                        content.push({ type: 'text', text: ' ' })
+                    }
+                    return
+                }
+                if (child.nodeType !== Node.ELEMENT_NODE) return
+                if (child.tagName === 'BR') {
+                    content.push({ type: 'hard_break' })
+                    return
+                }
+                if (child.tagName === 'IMG') {
+                    content.push(imageNode(child))
+                    return
+                }
+                content.push(...inlineContent(child, getMarks(child, inheritedMarks)))
+            })
+            return content
+        }
+
+        const imageNode = (image) => ({
+            type: 'image',
+            attrs: {
+                src: image.getAttribute('src') || '',
+                alt: image.getAttribute('alt') || null
+            }
+        })
+
+        const paragraphNode = (element) => {
+            const content = inlineContent(element)
+            return content.length ? { type: 'paragraph', content } : null
+        }
+
+        const listItemNode = (element) => {
+            const content = []
+            let inlineNodes = []
+            const flushInlineNodes = () => {
+                if (inlineNodes.length) content.push({ type: 'paragraph', content: inlineNodes })
+                inlineNodes = []
+            }
+
+            Array.from(element.childNodes).forEach((child) => {
+                if (child.nodeType === Node.ELEMENT_NODE && (child.tagName === 'UL' || child.tagName === 'OL')) {
+                    flushInlineNodes()
+                    const nestedList = listNode(child)
+                    if (nestedList) content.push(nestedList)
+                } else if (child.nodeType === Node.ELEMENT_NODE && blockTags.has(child.tagName)) {
+                    flushInlineNodes()
+                    const block = blockNode(child)
+                    if (block) content.push(block)
+                } else {
+                    inlineNodes.push(...(child.nodeType === Node.TEXT_NODE
+                        ? inlineContent({ childNodes: [child] })
+                        : inlineContent(child)))
+                }
+            })
+            flushInlineNodes()
+            return content.length ? { type: 'list_item', content } : null
+        }
+
+        const listNode = (element) => {
+            const content = Array.from(element.children)
+                .filter(child => child.tagName === 'LI')
+                .map(listItemNode)
+                .filter(Boolean)
+            if (!content.length) return null
+            return {
+                type: element.tagName === 'OL' ? 'ordered_list' : 'bullet_list',
+                ...(element.tagName === 'OL' ? { attrs: { order: 1 } } : {}),
+                content
+            }
+        }
+
+        const blockNode = (element) => {
+            if (element.tagName === 'IMG') return imageNode(element)
+            if (element.tagName === 'UL' || element.tagName === 'OL') return listNode(element)
+            if (/^H[1-6]$/.test(element.tagName)) {
+                const content = inlineContent(element)
+                return content.length ? {
+                    type: 'heading',
+                    attrs: { level: Number(element.tagName.substring(1)) },
+                    content
+                } : null
+            }
+            if (element.tagName === 'BLOCKQUOTE') {
+                const content = blockContent(element)
+                return content.length ? { type: 'blockquote', content } : null
+            }
+            return paragraphNode(element)
+        }
+
+        const blockContent = (parent) => {
+            const content = []
+            let inlineNodes = []
+            const flushInlineNodes = () => {
+                if (inlineNodes.length) content.push({ type: 'paragraph', content: inlineNodes })
+                inlineNodes = []
+            }
+
+            Array.from(parent.childNodes).forEach((child) => {
+                if (child.nodeType === Node.ELEMENT_NODE && blockTags.has(child.tagName)) {
+                    flushInlineNodes()
+                    const block = blockNode(child)
+                    if (block) content.push(block)
+                } else if (child.nodeType === Node.TEXT_NODE && child.textContent.trim() === '') {
+                    return
+                } else {
+                    inlineNodes.push(...(child.nodeType === Node.TEXT_NODE
+                        ? inlineContent({ childNodes: [child] })
+                        : inlineContent(child)))
+                }
+            })
+            flushInlineNodes()
+            return content
+        }
+
+        return { type: 'doc', content: blockContent(doc.body) }
+    }
+
     getEvents()
     currentRows()
     capturePositions()
@@ -1004,6 +1262,30 @@ addEventListener('DOMContentLoaded', () => {
         e.preventDefault()
         navigator.clipboard.writeText(getEmailHtml())
         document.querySelector('#copy-code').classList.add('green-pulse')
+    })
+
+    document.querySelector('#copy-substack').addEventListener('click', async (e) => {
+        e.preventDefault()
+        const button = e.currentTarget
+        const documentJson = JSON.stringify(getSubstackDocument(), null, 2)
+        try {
+            await navigator.clipboard.writeText(documentJson)
+        } catch (err) {
+            const holder = document.createElement('div')
+            holder.textContent = documentJson
+            holder.style.position = 'fixed'
+            holder.style.left = '-9999px'
+            document.body.appendChild(holder)
+            const range = document.createRange()
+            range.selectNodeContents(holder)
+            const selection = window.getSelection()
+            selection.removeAllRanges()
+            selection.addRange(range)
+            document.execCommand('copy')
+            selection.removeAllRanges()
+            holder.remove()
+        }
+        button.classList.add('green-pulse')
     })
 
     document.querySelector('#the-code').textContent = getEmailHtml()
