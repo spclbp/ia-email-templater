@@ -31,8 +31,10 @@ add_action('admin_menu', 'ia_email_templater_add');
 
 function ia_email_templater_enqueue()
 {
-    wp_enqueue_style('ia-email-admin', plugin_dir_url(__FILE__) . 'ia-email-admin.css');
-    wp_enqueue_script('ia-email-script', plugin_dir_url(__FILE__) . 'ia-email-script.js');
+    $admin_css = plugin_dir_path(__FILE__) . 'ia-email-admin.css';
+    $admin_js = plugin_dir_path(__FILE__) . 'ia-email-script.js';
+    wp_enqueue_style('ia-email-admin', plugin_dir_url(__FILE__) . 'ia-email-admin.css', array(), filemtime($admin_css));
+    wp_enqueue_script('ia-email-script', plugin_dir_url(__FILE__) . 'ia-email-script.js', array(), filemtime($admin_js));
     wp_enqueue_media();
 }
 add_action('admin_enqueue_scripts', 'ia_email_templater_enqueue');
@@ -679,4 +681,188 @@ function ia_email_strip_emojis($text)
     $emoji_pattern = '/[\x{1F1E6}-\x{1F1FF}\x{1F300}-\x{1F5FF}\x{1F600}-\x{1F64F}\x{1F680}-\x{1F6FF}\x{1F700}-\x{1F77F}\x{1F780}-\x{1F7FF}\x{1F800}-\x{1F8FF}\x{1F900}-\x{1F9FF}\x{1FA00}-\x{1FAFF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{FE0F}\x{200D}]/u';
 
     return preg_replace($emoji_pattern, '', $text);
+}
+
+function ia_email_register_newsletter_post_type()
+{
+    register_post_type(
+        'newsletter',
+        array(
+            'labels' => array(
+                'name' => __('Newsletters', 'textdomain'),
+                'singular_name' => __('Newsletter', 'textdomain')
+            ),
+            'public' => true,
+            'has_archive' => true,
+            'show_in_rest' => true,
+            'menu_icon' => 'dashicons-email',
+            'supports' => array('title', 'editor', 'excerpt', 'revisions'),
+            'rewrite' => array('slug' => 'newsletter')
+        )
+    );
+}
+add_action('init', 'ia_email_register_newsletter_post_type');
+
+function ia_email_flush_newsletter_rewrites()
+{
+    ia_email_register_newsletter_post_type();
+    flush_rewrite_rules();
+}
+register_activation_hook(__FILE__, 'ia_email_flush_newsletter_rewrites');
+
+// Tags allowed in newsletter post_content. No style/class/table markup survives.
+function ia_email_semantic_allowed_html()
+{
+    return array(
+        'p' => array(),
+        'br' => array(),
+        'strong' => array(),
+        'b' => array(),
+        'em' => array(),
+        'i' => array(),
+        'u' => array(),
+        'a' => array('href' => true, 'title' => true),
+        'ul' => array(),
+        'ol' => array(),
+        'li' => array(),
+        'h2' => array(),
+        'h3' => array(),
+        'h4' => array(),
+        'blockquote' => array(),
+        'figure' => array(),
+        'img' => array('src' => true, 'alt' => true)
+    );
+}
+
+// TinyMCE can store emojis as <img class="emoji">; swap them back to the emoji character.
+function ia_email_emoji_images_to_text($html)
+{
+    return preg_replace_callback('/<img\b[^>]*>/i', function ($matches) {
+        if (!preg_match('/\bclass\s*=\s*["\'][^"\']*\b(?:emoji|wp-smiley)\b/i', $matches[0])) {
+            return $matches[0];
+        }
+        return preg_match('/\balt\s*=\s*(["\'])(.*?)\1/i', $matches[0], $alt) ? $alt[2] : '';
+    }, $html);
+}
+
+// Single-line values such as row headers: inline formatting only.
+function ia_email_semantic_inline($text)
+{
+    $allowed = array('strong' => array(), 'b' => array(), 'em' => array(), 'i' => array());
+    return trim(wp_kses(ia_email_emoji_images_to_text(stripslashes((string) $text)), $allowed));
+}
+
+// Rich editor values: paragraphs via wpautop, then strip everything non-semantic.
+function ia_email_semantic_text($html)
+{
+    $html = ia_email_emoji_images_to_text(stripslashes((string) $html));
+    $html = wp_kses(wpautop($html), ia_email_semantic_allowed_html());
+    $html = preg_replace('#<p>(?:\s|&nbsp;|<br\s*/?>)*</p>#i', '', $html);
+    return trim($html);
+}
+
+function ia_email_semantic_image($attachment_id, $link = '')
+{
+    $url = $attachment_id ? wp_get_attachment_image_url($attachment_id, 'full') : '';
+    if (empty($url)) {
+        return '';
+    }
+    $alt = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
+    $img = '<img src="' . esc_url($url) . '" alt="' . esc_attr($alt) . '" />';
+    $link = trim((string) stripslashes($link));
+    if ($link !== '') {
+        $img = '<a href="' . esc_url($link) . '">' . $img . '</a>';
+    }
+    return '<figure>' . $img . '</figure>';
+}
+
+function ia_email_semantic_buttons($event_buttons)
+{
+    $links = array();
+    foreach ($event_buttons as $event_button) {
+        $text = trim(stripslashes($event_button->event_button_text));
+        $link = trim(stripslashes($event_button->event_button_link));
+        if ($text !== '' && $link !== '') {
+            $links[] = '<a href="' . esc_url($link) . '">' . esc_html($text) . '</a>';
+        }
+    }
+    return empty($links) ? '' : '<p>' . implode(' | ', $links) . '</p>';
+}
+
+/* Builds the newsletter body from the saved field values (the same records that drive the
+   email preview) rather than parsing the email HTML, so no table/CSS wrappers exist to strip.
+   Section order mirrors admin-view.php's preview. */
+function ia_email_build_semantic_html()
+{
+    $out = array();
+    $out[] = ia_email_semantic_image(intval(ia_email_get('header_image_id')));
+
+    $events = ia_email_get('events');
+    foreach ($events as $event) {
+        if ($event->event_mute === 'on' || $event->event_featured !== 'on') {
+            continue;
+        }
+        $header = ia_email_semantic_inline(ia_email_strip_emojis($event->event_header_text));
+        $text = ia_email_semantic_text($event->event_text);
+
+        if ($event->event_divider === 'on') {
+            if ($header !== '') {
+                $out[] = '<h2>' . $header . '</h2>';
+            }
+            $out[] = $text;
+            continue;
+        }
+        // The preview renders a header with no body text invisibly, so leave it out here.
+        if ($text === '') {
+            continue;
+        }
+        if ($header !== '') {
+            $out[] = '<h3>' . $header . '</h3>';
+        }
+        foreach (array_slice(ia_email_get_imgs($event->id), 0, 2) as $event_img) {
+            $out[] = ia_email_semantic_image(intval($event_img->event_img_id), $event_img->event_img_link);
+        }
+        $out[] = $text;
+        $out[] = ia_email_semantic_buttons(ia_email_get_buttons($event->id));
+    }
+
+    $more_events = array();
+    foreach ($events as $event) {
+        if ($event->event_mute === 'on' || $event->event_featured === 'on') {
+            continue;
+        }
+        $title = ia_email_semantic_inline($event->event_header_text);
+        $event_buttons = ia_email_get_buttons($event->id);
+        $link = empty($event_buttons) ? '' : trim(stripslashes($event_buttons[0]->event_button_link));
+        $more_events[] = '<li>' . ($link !== '' ? '<a href="' . esc_url($link) . '">' . $title . '</a>' : $title) . '</li>';
+    }
+    if (!empty($more_events)) {
+        $out[] = '<h2>More Volunteer Events</h2>';
+        $out[] = "<ul>\n" . implode("\n", $more_events) . "\n</ul>";
+    }
+
+    $out[] = '<p><a href="https://www.indyambassadors.org/events/">👀 See Our Full Calendar! 📅</a></p>';
+    $out[] = '<h2>Are we missing any opportunities?</h2>';
+    $out[] = '<p>Let us know! It could be in our next issue.<br />Submit '
+        . '<a href="https://www.indyambassadors.org/events/community/add">an event</a>, '
+        . '<a href="https://www.indyambassadors.org/add-ongoing/">an ongoing opportunity</a>, or '
+        . '<a href="mailto:volunteeradmin@indyambassadors.org">email us.</a></p>';
+    $out[] = ia_email_semantic_text(ia_email_get('footer_socials'));
+
+    return implode("\n\n", array_filter($out, 'strlen'));
+}
+
+// Creates a draft newsletter post; returns the post ID or a WP_Error.
+function ia_email_save_newsletter_post()
+{
+    return wp_insert_post(
+        array(
+            'post_type' => 'newsletter',
+            'post_status' => 'draft',
+            'post_title' => sprintf(__('Newsletter – %s', 'textdomain'), date_i18n(get_option('date_format'))),
+            // wp_insert_post unslashes its input, so slash to preserve backslashes in content.
+            'post_content' => wp_slash(ia_email_build_semantic_html())
+        ),
+        true
+    );
 }

@@ -1,5 +1,5 @@
 <?php
-
+//
 if (!function_exists('ia_email_strip_emojis')) {
     function ia_email_strip_emojis($text)
     {
@@ -55,8 +55,16 @@ if (!function_exists('ia_email_normalize_emoji_images')) {
     }
 }
 
+$newsletter_result = null;
 if (!empty($_POST)) {
     ia_email_post($_POST);
+    if (isset($_POST['ia-email-save-newsletter'])) {
+        if (isset($_POST['ia_email_newsletter_nonce']) && wp_verify_nonce($_POST['ia_email_newsletter_nonce'], 'ia_email_save_newsletter')) {
+            $newsletter_result = ia_email_save_newsletter_post();
+        } else {
+            $newsletter_result = new WP_Error('ia_email_nonce', 'Security check failed. Reload the page and try again.');
+        }
+    }
 }
 ?>
 
@@ -64,6 +72,11 @@ if (!empty($_POST)) {
     <div class="ia-email-admin-header">
         <h1>Indy Ambassadors Email Templater</h1>
     </div>
+    <?php if (is_wp_error($newsletter_result)) { ?>
+        <div class="notice notice-error is-dismissible"><p>Newsletter post not created: <?php echo esc_html($newsletter_result->get_error_message()); ?></p></div>
+    <?php } elseif ($newsletter_result) { ?>
+        <div class="notice notice-success is-dismissible"><p>Newsletter draft created. <a href="<?php echo esc_url(get_edit_post_link($newsletter_result)); ?>">Edit newsletter post</a></p></div>
+    <?php } ?>
     <div class="ia-email-admin-inputs">
         <div class="ia-email-admin-inputs-left">
             <h3 class="ia-email-templater-header">Newsletter Content</h3>
@@ -260,7 +273,8 @@ if (!empty($_POST)) {
                         <button id="add-event" class="ia-email-button">Add Row</button>
                         <input type="submit" value="Save" id="ia-email-save" class="ia-email-button">
                         <button id="copy-code" class="ia-email-button">Copy Code to Clipboard</button>
-                        <button id="copy-substack" class="ia-email-button">Copy for Substack</button>
+                        <?php wp_nonce_field('ia_email_save_newsletter', 'ia_email_newsletter_nonce'); ?>
+                        <input type="submit" name="ia-email-save-newsletter" value="Create Newsletter Post" id="ia-email-save-newsletter" class="ia-email-button">
                     </div>
                 </div>
             </form>
