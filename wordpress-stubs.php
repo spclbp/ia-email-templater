@@ -200,6 +200,14 @@ if (!function_exists('tribe_get_event')) {
         return null;
     }
 }
+
+if (!function_exists('tribe_get_start_date')) {
+    function tribe_get_start_date($event = null, $display_time = true, $date_format = '', $timezone = null)
+    {
+        return '';
+    }
+}
+
 if (!class_exists('WP_Error')) {
     class WP_Error
     {

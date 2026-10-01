@@ -7,6 +7,8 @@ addEventListener('DOMContentLoaded', () => {
     let draggedRow = null
     let hasUnsavedChanges = false
     let bypassUnloadWarning = false
+    let upcomingEvents = null
+    let upcomingEventsRequest = null
 
     const promotionalImageButton = document.querySelector('.ia-email-select-promotional-image')
     if (promotionalImageButton) initPromotionalImagePicker(promotionalImageButton)
@@ -48,7 +50,7 @@ addEventListener('DOMContentLoaded', () => {
     form.addEventListener('input', markUnsavedChanges)
     form.addEventListener('change', markUnsavedChanges)
 
-    [saveButton, document.querySelector('#ia-email-save-newsletter')].forEach((button) => {
+    ;[saveButton, document.querySelector('#ia-email-save-newsletter')].forEach((button) => {
         if (button) {
             button.addEventListener('click', () => {
                 bypassUnloadWarning = true
@@ -62,27 +64,92 @@ addEventListener('DOMContentLoaded', () => {
         e.returnValue = ''
     })
 
+    // Fetches every page of upcoming TEC events once and caches the result
     function getEvents() {
-        fetch('https://www.indyambassadors.org/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=today').then(res => res.json()).then(data => {
+        if (!upcomingEventsRequest) {
+            upcomingEventsRequest = (async () => {
+                // Skip events starting within the next 3 days (today, tomorrow, and the day after)
+                const cutoff = new Date()
+                cutoff.setDate(cutoff.getDate() + 3)
+                const pad = (n) => String(n).padStart(2, '0')
+                const cutoffDate = `${cutoff.getFullYear()}-${pad(cutoff.getMonth() + 1)}-${pad(cutoff.getDate())}`
 
-            let filteredData = data.events.filter((value, index, self) => {
-                return self.findIndex(event => event.title === value.title) === index;
+                let events = []
+                let url = `https://www.indyambassadors.org/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=${cutoffDate}`
+                while (url) {
+                    const data = await fetch(url).then(res => res.json())
+                    events = events.concat(data.events || [])
+                    url = data.next_rest_url || null
+                }
+                upcomingEvents = events
+                    .filter(event => (event.start_date || '') >= cutoffDate)
+                    .map(event => {
+                        const [, month, day] = event.start_date.split(' ')[0].split('-')
+                        return {
+                            id: String(event.id),
+                            title: event.title.toString().replace(/(<([^>]+)>)/ig, '').replace('#038;', ''),
+                            date: `${Number(month)}/${Number(day)}`
+                        }
+                    })
+                return upcomingEvents
+            })().catch(err => {
+                upcomingEventsRequest = null
+                console.error('Unable to load TEC events', err)
+            })
+        }
+        return upcomingEventsRequest.then(refreshEventDropdowns)
+    }
+
+    // Rebuilds each dropdown, leaving out events already chosen in another visible row
+    function refreshEventDropdowns() {
+        if (!upcomingEvents) return
+
+        const titleById = new Map(upcomingEvents.map(event => [event.id, event.title]))
+        const dropdowns = [...document.querySelectorAll('.ia-email-tec-dropdown')].filter(dropdown => {
+            const row = dropdown.closest('.ia-email-events-row')
+            const header = row && row.querySelector('.event-row-header')
+            return !(header && header.value === 'delete')
+        })
+
+        for (let dropdown of dropdowns) {
+            const currentValue = dropdown.value
+            const currentOption = dropdown.selectedOptions[0]
+            const currentTitle = titleById.get(currentValue)
+            const takenIds = new Set()
+            const takenTitles = new Set()
+
+            for (let other of dropdowns) {
+                if (other === dropdown || other.value === 'none') continue
+                takenIds.add(other.value)
+                if (titleById.has(other.value)) takenTitles.add(titleById.get(other.value))
+            }
+
+            const seenTitles = new Set()
+            const available = upcomingEvents.filter(event => {
+                if (event.id !== currentValue) {
+                    if (takenIds.has(event.id) || takenTitles.has(event.title) || seenTitles.has(event.title)) return false
+                    if (event.title === currentTitle) return false
+                }
+                seenTitles.add(event.title)
+                return true
             })
 
-            initDropdowns = document.querySelectorAll('.ia-email-tec-dropdown')
-
-            for (let dropdown of initDropdowns) {
-                if (dropdown.options.length <= 2) {
-                    for (let event of filteredData) {
-                        let option = document.createElement('option')
-                        option.textContent = event.title.toString().replace(/(<([^>]+)>)/ig, '').replace('#038;', '')
-                        option.value = event.id
-                        dropdown.append(option)
-                    }
-                }
+            const options = [new Option('None', 'none')]
+            if (currentValue !== 'none' && !available.some(event => event.id === currentValue) && currentOption) {
+                options.push(new Option(currentOption.textContent, currentValue))
             }
-        })
+            for (let event of available) {
+                options.push(new Option(`${event.date} ${event.title}`, event.id))
+            }
+
+            dropdown.replaceChildren(...options)
+            dropdown.value = currentValue
+        }
     }
+
+    form.addEventListener('change', (e) => {
+        if (e.target.classList.contains('ia-email-tec-dropdown')) refreshEventDropdowns()
+    })
 
     function populateRow(el, id) {
         let elParent = el.parentElement.parentElement
@@ -379,6 +446,7 @@ addEventListener('DOMContentLoaded', () => {
                     selectRemoveButton.parentNode.parentNode.parentNode.querySelector('.event-row-header').value = 'delete';
                     selectRemoveButton.parentNode.parentNode.parentNode.style.display = 'none';
                     row.dataset.dirty = 'true'
+                    refreshEventDropdowns()
                 }
             })
 
@@ -529,6 +597,7 @@ addEventListener('DOMContentLoaded', () => {
         removeButton.addEventListener('click', (e) => {
             e.preventDefault()
             el.remove()
+            refreshEventDropdowns()
         })
 
         multiImage.addEventListener('click', () => {
@@ -846,6 +915,7 @@ addEventListener('DOMContentLoaded', () => {
             parentEl.querySelector('.ia-email-events-row-header-label').textContent = 'Divider: ' + plainHeader;
             parentEl.querySelector('.ia-email-events-get-tec').style.display = 'none'
             parentEl.querySelector('.ia-email-tec-dropdown').value = 'none'
+            refreshEventDropdowns()
             parentEl.querySelector('[for="ia-email-event-image"]').style.display = 'none'
             parentEl.querySelector('.ia-email-event-image-wrapper').style.display = 'none'
             parentEl.querySelector('.ia-email-event-image-preview').src = ''

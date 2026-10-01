@@ -142,7 +142,7 @@ if (!empty($_POST)) {
                                                 <option value="none">None</option>
                                                 <?php
                                                 if ($event->tec_event_id != '') { ?>
-                                                    <option value="<?php echo $event->tec_event_id; ?>" selected>-- <?php echo get_the_title(tribe_get_event($event->tec_event_id)); ?></option>
+                                                    <option value="<?php echo $event->tec_event_id; ?>" selected>-- <?php echo tribe_get_start_date($event->tec_event_id, false, 'n/j'); ?> <?php echo get_the_title(tribe_get_event($event->tec_event_id)); ?></option>
                                                 <?php } ?>
                                             </select>
                                         </div>
