@@ -28,7 +28,16 @@ addEventListener('DOMContentLoaded', () => {
 
     const getEmailHtml = () => {
         const preview = document.querySelector('#the-preview').cloneNode(true)
+        /* WordPress's emoji script rewrites emoji in the admin DOM as twemoji <img> tags after PHP
+           has rendered the preview, so the copied HTML needs them turned back into characters.
+           An image with no alt text has no character to fall back to, so it keeps the old inline
+           sizing instead of being dropped. */
         preview.querySelectorAll('img.emoji, img.wp-smiley').forEach((image) => {
+            const character = image.getAttribute('alt') || ''
+            if (character) {
+                image.replaceWith(document.createTextNode(character))
+                return
+            }
             image.style.width = '1em'
             image.style.height = '1em'
             image.style.maxWidth = 'none'
@@ -38,6 +47,7 @@ addEventListener('DOMContentLoaded', () => {
         return preview.innerHTML
     }
 
+    updateEventLinks()
     getEvents()
     currentRows()
     capturePositions()
@@ -100,8 +110,21 @@ addEventListener('DOMContentLoaded', () => {
         return upcomingEventsRequest.then(refreshEventDropdowns)
     }
 
+    // Points each row's edit/view links at its selected TEC event, hiding them when none is chosen
+    function updateEventLinks() {
+        for (let dropdown of document.querySelectorAll('.ia-email-tec-dropdown')) {
+            const links = dropdown.parentElement.querySelector('.ia-email-tec-links')
+            if (!links) continue
+            const id = encodeURIComponent(dropdown.value)
+            links.hidden = dropdown.value === 'none' || dropdown.value === ''
+            links.querySelector('.ia-email-tec-edit-link').href = `https://www.indyambassadors.org/wp-admin/post.php?post=${id}&action=edit`
+            links.querySelector('.ia-email-tec-view-link').href = `https://www.indyambassadors.org/?post_type=tribe_events&p=${id}`
+        }
+    }
+
     // Rebuilds each dropdown, leaving out events already chosen in another visible row
     function refreshEventDropdowns() {
+        updateEventLinks()
         if (!upcomingEvents) return
 
         const titleById = new Map(upcomingEvents.map(event => [event.id, event.title]))
@@ -220,7 +243,8 @@ addEventListener('DOMContentLoaded', () => {
                     )
                     return {
                         url: (preferredSize && preferredSize.url) || image.url || '',
-                        id: image.id || ''
+                        id: image.id || '',
+                        alt: image.alt || ''
                     }
                 }
 
@@ -334,6 +358,8 @@ addEventListener('DOMContentLoaded', () => {
                     buttonConfigs.push({ text: 'Organizer', link: organizerUrl })
                 }
 
+                const primaryImageAlt = selectedImage.alt || toPlainText(eventTitle)
+
                 rowLabel.textContent = toPlainText(newsletterTitle)
                 elHeader.value = newsletterTitle
                 elMute.checked = false
@@ -342,12 +368,14 @@ addEventListener('DOMContentLoaded', () => {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
                     elImages[0].querySelector('.ia-email-event-image-link').value = primaryImageLink
+                    elImages[0].querySelector('.ia-email-event-image-alt').value = selectedImage.id ? primaryImageAlt : ''
                     syncRemoveImageVisibility(elImages[0])
                     elImages[1].remove()
                 } else {
                     elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
                     elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
                     elImages[0].querySelector('.ia-email-event-image-link').value = primaryImageLink
+                    elImages[0].querySelector('.ia-email-event-image-alt').value = selectedImage.id ? primaryImageAlt : ''
                     syncRemoveImageVisibility(elImages[0])
                 }
                 elTwoImages.checked = false
@@ -380,12 +408,14 @@ addEventListener('DOMContentLoaded', () => {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
                 elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
                 elImages[0].querySelector('.ia-email-event-image-link').value = ''
+                elImages[0].querySelector('.ia-email-event-image-alt').value = ''
                 syncRemoveImageVisibility(elImages[0])
                 elImages[1].remove()
             } else {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
                 elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
                 elImages[0].querySelector('.ia-email-event-image-link').value = ''
+                elImages[0].querySelector('.ia-email-event-image-alt').value = ''
                 syncRemoveImageVisibility(elImages[0])
             }
             elTwoImages.checked = false
@@ -461,6 +491,7 @@ addEventListener('DOMContentLoaded', () => {
                     imgWrapClone.querySelector('.ia-email-event-image-preview').src = ''
                     imgWrapClone.querySelector('.ia-email-event-image-image-id').value = ''
                     imgWrapClone.querySelector('.ia-email-event-image-link').value = ''
+                    imgWrapClone.querySelector('.ia-email-event-image-alt').value = ''
                     initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
                     initRemoveImage(imgWrapClone.querySelector('.ia-email-remove-image'))
                     syncRemoveImageVisibility(imgWrapClone)
@@ -539,6 +570,7 @@ addEventListener('DOMContentLoaded', () => {
         el.querySelector('.ia-email-event-id').value = ''
         el.querySelector('.ia-email-event-image-image-id').value = ''
         el.querySelector('.ia-email-event-image-link').value = ''
+        el.querySelector('.ia-email-event-image-alt').value = ''
         //CLB 1/25/25 - incremental saves
 
         let imageButton = el.querySelector('.ia-email-select-image')
@@ -556,6 +588,7 @@ addEventListener('DOMContentLoaded', () => {
         let eventButtonAdd = el.querySelector('.ia-email-button-add')
         let eventButtonRemove = el.querySelector('.ia-email-button-remove')
         dropdown.value = 'none'
+        el.querySelector('.ia-email-tec-links').hidden = true
         featured.checked = false
         multiImage.checked = false
 
@@ -609,6 +642,7 @@ addEventListener('DOMContentLoaded', () => {
                 imgWrapClone.querySelector('.ia-email-event-image-preview').src = ''
                 imgWrapClone.querySelector('.ia-email-event-image-image-id').value = ''
                 imgWrapClone.querySelector('.ia-email-event-image-link').value = ''
+                imgWrapClone.querySelector('.ia-email-event-image-alt').value = ''
                 initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
                 initRemoveImage(imgWrapClone.querySelector('.ia-email-remove-image'))
                 syncRemoveImageVisibility(imgWrapClone)
@@ -669,6 +703,8 @@ addEventListener('DOMContentLoaded', () => {
                 attachment = file_frame.state().get('selection').first().toJSON()
                 el.parentElement.getElementsByClassName("ia-email-event-image-preview")[0].src = attachment.url
                 el.parentElement.getElementsByClassName("ia-email-event-image-image-id")[0].value = attachment.id
+                // A different image needs a different description, so seed it from the media library.
+                el.parentElement.getElementsByClassName("ia-email-event-image-alt")[0].value = attachment.alt || ''
                 syncRemoveImageVisibility(el.closest('.ia-email-event-image-wrapper'))
                 wp.media.model.settings.post.id = wp_media_post_id
                 const dirtyRow = el.closest('.ia-email-events-row')
@@ -813,6 +849,7 @@ addEventListener('DOMContentLoaded', () => {
             imageWrapper.querySelector('.ia-email-event-image-preview').src = ''
             imageWrapper.querySelector('.ia-email-event-image-image-id').value = ''
             imageWrapper.querySelector('.ia-email-event-image-link').value = ''
+            imageWrapper.querySelector('.ia-email-event-image-alt').value = ''
             syncRemoveImageVisibility(imageWrapper)
 
             const row = el.closest('.ia-email-events-row')
@@ -858,6 +895,7 @@ addEventListener('DOMContentLoaded', () => {
                 attachment = file_frame.state().get('selection').first().toJSON()
                 el.previousElementSibling.previousElementSibling.src = attachment.url
                 el.previousElementSibling.value = attachment.id
+                el.parentElement.querySelector('.ia-email-header-image-alt').value = attachment.alt || ''
                 wp.media.model.settings.post.id = wp_media_post_id
             })
             file_frame.open()

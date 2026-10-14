@@ -17,14 +17,13 @@ if (!defined('ABSPATH')) {
 
 function ia_email_templater_add()
 {
-    add_menu_page(
+    // Listed under the IA Newsletters menu, where the posts it creates live.
+    add_submenu_page(
+        'edit.php?post_type=ia_newsletter',
         __('IA Email Templater', 'textdomain'),
         'IA Email Templater',
         'manage_options',
-        plugin_dir_path(__FILE__) . 'admin-view.php',
-        '',
-        'dashicons-email-alt',
-        9
+        plugin_dir_path(__FILE__) . 'admin-view.php'
     );
 }
 add_action('admin_menu', 'ia_email_templater_add');
@@ -130,7 +129,8 @@ function ia_email_register_promotional_photo_rest_field()
                 $photo_id = intval(get_post_meta($event['id'], 'ia_email_promotional_image_id', true));
                 return array(
                     'id' => $photo_id,
-                    'url' => $photo_id ? wp_get_attachment_image_url($photo_id, 'full') : ''
+                    'url' => $photo_id ? wp_get_attachment_image_url($photo_id, 'full') : '',
+                    'alt' => ia_email_image_alt($photo_id)
                 );
             },
             'schema' => array(
@@ -150,7 +150,8 @@ function ia_email_add_promotional_photo_to_event_rest_response($data, $event_id 
     $data['ia_email_event_emoji'] = get_post_meta($event_id, 'ia_email_event_emoji', true);
     $data['ia_email_promotional_image'] = array(
         'id' => $photo_id,
-        'url' => $photo_id ? wp_get_attachment_image_url($photo_id, 'full') : ''
+        'url' => $photo_id ? wp_get_attachment_image_url($photo_id, 'full') : '',
+        'alt' => ia_email_image_alt($photo_id)
     );
 
     return $data;
@@ -170,6 +171,7 @@ function ia_email_install()
         "CREATE TABLE IF NOT EXISTS $table_templater (
 	    	id int NOT NULL AUTO_INCREMENT,
             header_image_id int NOT NULL,
+            header_image_alt varchar(512) DEFAULT '' NOT NULL,
 	    	header_text text NOT NULL,
 	    	preview_text text NOT NULL,          
 	    	intro_paragraph text NOT NULL,
@@ -205,6 +207,7 @@ function ia_email_install()
             event_id int NOT NULL,
             event_img_id int NOT NULL,
             event_img_link varchar(512) DEFAULT '' NOT NULL,
+            event_img_alt varchar(512) DEFAULT '' NOT NULL,
             PRIMARY KEY  (id),
             FOREIGN KEY  (event_id) REFERENCES $table_events (id)
       )"
@@ -234,6 +237,7 @@ function ia_email_install_data()
         $table_templater,
         array(
             'header_image_id' => '',
+            'header_image_alt' => '',
             'header_text' => 'Example Header',
             'preview_text' => 'Exmaple Preview Text',
             'intro_paragraph' => 'Initial introduction paragraph.',
@@ -267,7 +271,8 @@ function ia_email_install_data()
         array(
             'event_id' => $last_id,
             'event_img_id' => '',
-            'event_img_link' => ''
+            'event_img_link' => '',
+            'event_img_alt' => ''
         )
     );
 
@@ -287,18 +292,32 @@ register_activation_hook(__FILE__, 'ia_email_install_data');
 function ia_email_maybe_upgrade_db()
 {
     global $wpdb;
-    $table_event_imgs = $wpdb->prefix . 'ia_email_event_imgs';
 
-    $image_link_exists = $wpdb->get_var(
-        $wpdb->prepare(
-            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'event_img_link'",
-            DB_NAME,
-            $table_event_imgs
+    $added_columns = array(
+        $wpdb->prefix . 'ia_email_event_imgs' => array(
+            'event_img_link' => "varchar(512) DEFAULT '' NOT NULL",
+            'event_img_alt' => "varchar(512) DEFAULT '' NOT NULL"
+        ),
+        $wpdb->prefix . 'ia_email_templater' => array(
+            'header_image_alt' => "varchar(512) DEFAULT '' NOT NULL"
         )
     );
 
-    if (intval($image_link_exists) === 0) {
-        $wpdb->query("ALTER TABLE $table_event_imgs ADD COLUMN event_img_link varchar(512) DEFAULT '' NOT NULL");
+    foreach ($added_columns as $table => $columns) {
+        foreach ($columns as $column => $definition) {
+            $column_exists = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+                    DB_NAME,
+                    $table,
+                    $column
+                )
+            );
+
+            if (intval($column_exists) === 0) {
+                $wpdb->query("ALTER TABLE $table ADD COLUMN $column $definition");
+            }
+        }
     }
 }
 add_action('plugins_loaded', 'ia_email_maybe_upgrade_db');
@@ -312,6 +331,7 @@ function ia_email_post($post)
     $table_event_buttons = $wpdb->prefix . 'ia_email_event_buttons';
 
     $header_image_id = $post['ia-email-header-image'];
+    $header_image_alt = $post['ia-email-header-image-alt'] ?? '';
     $header = $post['ia-email-title-text'];
     $intro_paragraph = $post['ia-email-intro-p'];
     $intro_signature = $post['ia-email-intro-signature'];
@@ -362,6 +382,8 @@ function ia_email_post($post)
                 //$events[$index]['images'][$img_index]->eventImageImageId=$v[key($v)];
             } elseif (key($v) == 'event-image-link') {
                 $events[$index]['images'][$img_index]['event-image-link'] = $v[key($v)][0];
+            } elseif (key($v) == 'event-image-alt') {
+                $events[$index]['images'][$img_index]['event-image-alt'] = $v[key($v)][0];
             } elseif (array_key_exists('event-button', $events[$index]) && key($v) == 'event-button') {
                 $events[$index]['event-button'] = array_merge_recursive($events[$index]['event-button'], $v[key($v)]);
             } elseif (array_key_exists(key($v), $events[$index])) {
@@ -446,30 +468,32 @@ function ia_email_post($post)
         $wpdb->insert(
             $table_templater,
             array(
-                'id'              => 1,
-                'header_image_id' => intval( $header_image_id ),
-                'header_text'     => $header,
-                'preview_text'    => '',
-                'intro_paragraph' => $intro_paragraph,
-                'intro_signature' => $intro_signature,
-                'footer_signup'   => $footer_signup,
-                'footer_socials'  => $footer_socials,
+                'id'               => 1,
+                'header_image_id'  => intval( $header_image_id ),
+                'header_image_alt' => $header_image_alt,
+                'header_text'      => $header,
+                'preview_text'     => '',
+                'intro_paragraph'  => $intro_paragraph,
+                'intro_signature'  => $intro_signature,
+                'footer_signup'    => $footer_signup,
+                'footer_socials'   => $footer_socials,
             ),
-            array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
+            array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
         );
     } else {
         $wpdb->update(
             $table_templater,
             array(
-                'header_image_id' => intval( $header_image_id ),
-                'header_text'     => $header,
-                'intro_paragraph' => $intro_paragraph,
-                'intro_signature' => $intro_signature,
-                'footer_signup'   => $footer_signup,
-                'footer_socials'  => $footer_socials,
+                'header_image_id'  => intval( $header_image_id ),
+                'header_image_alt' => $header_image_alt,
+                'header_text'      => $header,
+                'intro_paragraph'  => $intro_paragraph,
+                'intro_signature'  => $intro_signature,
+                'footer_signup'    => $footer_signup,
+                'footer_socials'   => $footer_socials,
             ),
             array( 'id' => 1 ),
-            array( '%d', '%s', '%s', '%s', '%s', '%s' ),
+            array( '%d', '%s', '%s', '%s', '%s', '%s', '%s' ),
             array( '%d' )
         );
     }
@@ -549,6 +573,7 @@ function ia_email_post($post)
                             array(
                                 'event_img_id' => $event['images'][$i]['event-image-image-id'],
                                 'event_img_link' => $event['images'][$i]['event-image-link'] ?? '',
+                                'event_img_alt' => $event['images'][$i]['event-image-alt'] ?? '',
                             ),
                             array('id' => $event['images'][$i]['event-image-id'])
                         );
@@ -559,7 +584,8 @@ function ia_email_post($post)
                         array(
                             'event_id' => $event_id,
                             'event_img_id' => $event['images'][$i]['event-image-image-id'],
-                            'event_img_link' => $event['images'][$i]['event-image-link'] ?? ''
+                            'event_img_link' => $event['images'][$i]['event-image-link'] ?? '',
+                            'event_img_alt' => $event['images'][$i]['event-image-alt'] ?? ''
                         )
                     );
                 }
@@ -637,6 +663,19 @@ function ia_email_get_imgs($email_id)
     return $result;
 }
 
+/* Alt text for one graphic: the value typed into the templater, falling back to the alt text
+   stored on the attachment itself so older rows keep whatever the media library already had. */
+function ia_email_image_alt($attachment_id, $alt = '')
+{
+    $alt = trim((string) stripslashes((string) $alt));
+    if ($alt !== '') {
+        return $alt;
+    }
+
+    $attachment_id = intval($attachment_id);
+    return $attachment_id ? (string) get_post_meta($attachment_id, '_wp_attachment_image_alt', true) : '';
+}
+
 function ia_email_get_buttons($email_id)
 {
     global $wpdb;
@@ -671,44 +710,347 @@ function ia_email_get_buttons_html($event_id)
     return $result;
 }
 
+/* The codepoint ranges this plugin treats as emoji. Shared so the strip and the normalize helpers
+   cannot drift apart, and includes the variation selector and zero-width joiner that bind
+   multi-codepoint sequences such as flags and family emoji together. */
+function ia_email_emoji_codepoint_ranges()
+{
+    return array(
+        array(0x1F1E6, 0x1F1FF),
+        array(0x1F300, 0x1F5FF),
+        array(0x1F600, 0x1F64F),
+        array(0x1F680, 0x1F6FF),
+        array(0x1F700, 0x1F77F),
+        array(0x1F780, 0x1F7FF),
+        array(0x1F800, 0x1F8FF),
+        array(0x1F900, 0x1F9FF),
+        array(0x1FA00, 0x1FAFF),
+        array(0x2600, 0x26FF),
+        array(0x2700, 0x27BF),
+        array(0x200D, 0x200D),
+        array(0xFE0F, 0xFE0F)
+    );
+}
+
+function ia_email_is_emoji_codepoint($codepoint)
+{
+    foreach (ia_email_emoji_codepoint_ranges() as $range) {
+        if ($codepoint >= $range[0] && $codepoint <= $range[1]) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Removes emoji characters while preserving regular punctuation and text.
 function ia_email_strip_emojis($text)
 {
     if (!is_string($text) || $text === '') {
         return $text;
     }
 
-    // Remove common emoji codepoint ranges while preserving regular punctuation and text.
-    $emoji_pattern = '/[\x{1F1E6}-\x{1F1FF}\x{1F300}-\x{1F5FF}\x{1F600}-\x{1F64F}\x{1F680}-\x{1F6FF}\x{1F700}-\x{1F77F}\x{1F780}-\x{1F7FF}\x{1F800}-\x{1F8FF}\x{1F900}-\x{1F9FF}\x{1FA00}-\x{1FAFF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{FE0F}\x{200D}]/u';
+    $character_class = '';
+    foreach (ia_email_emoji_codepoint_ranges() as $range) {
+        $character_class .= $range[0] === $range[1]
+            ? sprintf('\x{%04X}', $range[0])
+            : sprintf('\x{%04X}-\x{%04X}', $range[0], $range[1]);
+    }
 
-    return preg_replace($emoji_pattern, '', $text);
+    return preg_replace('/[' . $character_class . ']/u', '', $text);
 }
 
 function ia_email_register_newsletter_post_type()
 {
     register_post_type(
-        'newsletter',
+        'ia_newsletter',
         array(
             'labels' => array(
-                'name' => __('Newsletters', 'textdomain'),
-                'singular_name' => __('Newsletter', 'textdomain')
+                'name' => __('IA Newsletters', 'textdomain'),
+                'singular_name' => __('IA Newsletter', 'textdomain')
             ),
             'public' => true,
             'has_archive' => true,
             'show_in_rest' => true,
             'menu_icon' => 'dashicons-email',
-            'supports' => array('title', 'editor', 'excerpt', 'revisions'),
-            'rewrite' => array('slug' => 'newsletter')
+            'supports' => array('title', 'editor', 'excerpt', 'revisions', 'thumbnail'),
+            'rewrite' => array('slug' => 'ia-newsletters')
         )
     );
 }
 add_action('init', 'ia_email_register_newsletter_post_type');
 
+/* The Featured Image panel needs two separate things to be true, and either can be undone by code
+   that loads after this plugin, so both are reasserted late on init, again on wp_loaded (after
+   every init callback, before the editor or REST API checks either one), and whenever anything
+   re-registers the post type:
+
+   - The post type must support thumbnails. The supports list above covers that, unless another
+     plugin re-registers a post type named 'ia_newsletter' without it.
+   - The theme must allow post thumbnails for this post type. A theme that passes an explicit list
+     of post types to add_theme_support leaves custom types out. add_theme_support merges into that
+     list rather than replacing it, and bails out when the theme already supports every post type,
+     so calling it here cannot narrow what the theme asked for. */
+function ia_email_newsletter_thumbnail_support()
+{
+    add_post_type_support('ia_newsletter', 'thumbnail');
+    add_theme_support('post-thumbnails', array('ia_newsletter'));
+}
+add_action('init', 'ia_email_newsletter_thumbnail_support', 99);
+add_action('wp_loaded', 'ia_email_newsletter_thumbnail_support');
+
+function ia_email_newsletter_reregistered($post_type)
+{
+    if ($post_type === 'ia_newsletter') {
+        add_post_type_support('ia_newsletter', 'thumbnail');
+    }
+}
+add_action('registered_post_type', 'ia_email_newsletter_reregistered');
+
+/* Explains why the Featured Image panel is missing for newsletters, or returns '' when both
+   requirements hold. Shown after creating a newsletter post so a live site can be diagnosed. */
+function ia_email_newsletter_thumbnail_problem()
+{
+    $problems = array();
+    if (!post_type_supports('ia_newsletter', 'thumbnail')) {
+        $problems[] = 'the ia_newsletter post type does not support thumbnails (another plugin may register an "ia_newsletter" post type too)';
+    }
+    if (!current_theme_supports('post-thumbnails', 'ia_newsletter')) {
+        $theme_support = get_theme_support('post-thumbnails');
+        $problems[] = 'the active theme does not allow featured images for newsletters (theme allows: '
+            . (is_array($theme_support) && isset($theme_support[0]) ? implode(', ', (array) $theme_support[0]) : 'none')
+            . ')';
+    }
+    return implode('; ', $problems);
+}
+
+/* Themes disagree about the featured image on a custom post type's page: some never print it, some
+   only use it as a background or hidden hero, and page builders render content outside the loop.
+   So the newsletter page always gets its header graphic as the first thing in the content, and the
+   theme's own copy is suppressed there so it never shows twice. Archives and other pages keep the
+   theme's thumbnails. */
+function ia_email_is_newsletter_page_post($post_id)
+{
+    return is_singular('ia_newsletter') && intval($post_id) === get_queried_object_id();
+}
+
+function ia_email_hide_theme_newsletter_thumbnail($html, $post_id)
+{
+    return ia_email_is_newsletter_page_post($post_id) ? '' : $html;
+}
+add_filter('post_thumbnail_html', 'ia_email_hide_theme_newsletter_thumbnail', 10, 2);
+
+function ia_email_newsletter_header_in_content($content)
+{
+    $post_id = get_the_ID();
+    $thumbnail_id = $post_id ? get_post_thumbnail_id($post_id) : 0;
+    if (!$thumbnail_id || !ia_email_is_newsletter_page_post($post_id)) {
+        return $content;
+    }
+
+    // wp_get_attachment_image skips post_thumbnail_html, so the filter above does not blank it.
+    $header = wp_get_attachment_image($thumbnail_id, 'full', false, array('style' => 'width: 100%; height: auto;'));
+    return '<figure class="ia-email-newsletter-header">' . $header . '</figure>' . $content;
+}
+add_filter('the_content', 'ia_email_newsletter_header_in_content', 5);
+
 function ia_email_flush_newsletter_rewrites()
 {
     ia_email_register_newsletter_post_type();
+    ia_email_register_substack_feed();
     flush_rewrite_rules();
 }
 register_activation_hook(__FILE__, 'ia_email_flush_newsletter_rewrites');
+
+/* Full-text feed of the newest newsletters for Substack's RSS importer, served at /feed/substack/
+   (or ?feed=substack with plain permalinks). Substack takes the post body from content:encoded,
+   which opens with the header banner (the featured image). */
+function ia_email_register_substack_feed()
+{
+    add_feed('substack', 'ia_email_render_substack_feed');
+}
+add_action('init', 'ia_email_register_substack_feed');
+
+/* add_feed and a changed post type slug only take effect once rewrite rules are rebuilt. Activation
+   handles new installs; a site that updated the plugin in place gets one rebuild here per bump of the
+   stored version ('2' added the ia-newsletters slug). Later rebuilds include both on their own
+   because they are registered on every init. */
+function ia_email_maybe_flush_substack_feed_rewrites()
+{
+    if (get_option('ia_email_substack_feed_rewrites') !== '2') {
+        flush_rewrite_rules(false);
+        update_option('ia_email_substack_feed_rewrites', '2');
+    }
+}
+add_action('init', 'ia_email_maybe_flush_substack_feed_rewrites', 100);
+
+// Plain text for an XML element: no tags, and no HTML-only entities such as &nbsp;.
+function ia_email_xml_text($text)
+{
+    $text = trim(html_entity_decode(wp_strip_all_tags((string) $text), ENT_QUOTES, 'UTF-8'));
+    return htmlspecialchars(ia_email_xml_safe($text), ENT_QUOTES | ENT_XML1, 'UTF-8');
+}
+
+// Drops control characters that XML 1.0 forbids even inside CDATA.
+function ia_email_xml_safe($text)
+{
+    return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', (string) $text);
+}
+
+function ia_email_cdata($text)
+{
+    // A literal ]]> would end the section early, so split it across two sections.
+    return '<![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', ia_email_xml_safe($text)) . ']]>';
+}
+
+/* Email-service placeholders such as {unsubscription_url}, {{first_name}} or *|FNAME|* are never
+   filled in on Substack. A link that points at one (an unsubscribe link, usually) is removed along
+   with its text; any other placeholder is deleted. */
+function ia_email_strip_merge_tags($html)
+{
+    $placeholder = '(?:(?:\{\{?|%7B(?:%7B)?)\s*[a-z][a-z0-9_.-]*\s*(?:\}\}?|%7D(?:%7D)?)|\*\|[a-z0-9_:]+\|\*)';
+    $html = preg_replace('~<a\b[^>]*\bhref\s*=\s*(["\'])[^"\']*' . $placeholder . '[^"\']*\1[^>]*>.*?</a>~is', '', $html);
+    // "Hi {first_name}, ..." should read "Hi, ...", not "Hi , ...".
+    return preg_replace('~(?:[ \t]*' . $placeholder . '(?=[,.;:!?]))|' . $placeholder . '~i', '', $html);
+}
+
+// Trims whitespace, &nbsp; and stray <br> from both ends of each heading; drops headings left empty.
+function ia_email_trim_headings($html)
+{
+    $space = '(?:\s|&nbsp;|&#0*160;|&#x0*a0;|\xC2\xA0|<br\s*/?>)*';
+    $html = preg_replace_callback('~(<h([1-6])\b[^>]*>)(.*?)(</h\2>)~is', function ($matches) use ($space) {
+        return $matches[1] . preg_replace('~^' . $space . '|' . $space . '$~i', '', $matches[3]) . $matches[4];
+    }, $html);
+    return preg_replace('~<h([1-6])\b[^>]*></h\1>~i', '', $html);
+}
+
+/* Substack copies the HTML onto another domain, so a root-relative or relative src/href would break.
+   Resolves them against $base_url; URLs with a scheme (https:, mailto:, tel:, data:) and in-page
+   #anchors are left alone. */
+function ia_email_absolute_urls($html, $base_url)
+{
+    return preg_replace_callback('~(\s(?:src|href)\s*=\s*)(["\'])(.*?)\2~i', function ($matches) use ($base_url) {
+        $url = trim(html_entity_decode($matches[3], ENT_QUOTES, 'UTF-8'));
+        if ($url === '' || preg_match('~^(?:[a-z][a-z0-9+.-]*:|#)~i', $url)) {
+            return $matches[0];
+        }
+        return $matches[1] . $matches[2] . esc_url(WP_Http::make_absolute_url($url, $base_url)) . $matches[2];
+    }, $html);
+}
+
+function ia_email_substack_content($html, $base_url)
+{
+    $html = ia_email_emoji_to_unicode($html);
+    $html = ia_email_strip_merge_tags($html);
+    $html = ia_email_trim_headings($html);
+    $html = ia_email_absolute_urls($html, $base_url);
+    // Removing placeholders can leave a paragraph with nothing in it.
+    $html = preg_replace('#<p>(?:\s|&nbsp;|<br\s*/?>)*</p>#i', '', $html);
+    return trim($html);
+}
+
+/* Substack ignores enclosure and media:content, so the header banner (the featured image) also leads
+   the body. The newsletter page gets it from ia_email_newsletter_header_in_content, which only runs
+   on the single-post view, so it is never in the feed body twice. */
+function ia_email_substack_header_html($post_id)
+{
+    $thumbnail_id = get_post_thumbnail_id($post_id);
+    $url = $thumbnail_id ? wp_get_attachment_image_url($thumbnail_id, 'full') : '';
+    if (empty($url)) {
+        return '';
+    }
+    $alt = ia_email_image_alt($thumbnail_id);
+    return '<figure><img src="' . esc_url($url) . '" alt="' . esc_attr($alt) . '" /></figure>';
+}
+
+// <enclosure> and <media:content> for the featured image (the newsletter header), or '' if none.
+function ia_email_substack_image_tags($post_id)
+{
+    $thumbnail_id = get_post_thumbnail_id($post_id);
+    $image = $thumbnail_id ? wp_get_attachment_image_src($thumbnail_id, 'full') : false;
+    if (empty($image)) {
+        return '';
+    }
+
+    $url = esc_url(WP_Http::make_absolute_url($image[0], home_url('/')));
+    $type = esc_attr(get_post_mime_type($thumbnail_id));
+    $file = get_attached_file($thumbnail_id);
+    // RSS 2.0 requires a byte length; 0 is the accepted value when it is unknown (e.g. offloaded media).
+    $length = ($file && file_exists($file)) ? intval(filesize($file)) : 0;
+    $alt = ia_email_xml_text(ia_email_image_alt($thumbnail_id));
+
+    $tags = '<enclosure url="' . $url . '" length="' . $length . '" type="' . $type . '" />' . "\n";
+    $tags .= '<media:content url="' . $url . '" medium="image" type="' . $type . '"'
+        . (!empty($image[1]) ? ' width="' . intval($image[1]) . '"' : '')
+        . (!empty($image[2]) ? ' height="' . intval($image[2]) . '"' : '')
+        . '>' . ($alt !== '' ? '<media:description type="plain">' . $alt . '</media:description>' : '')
+        . '</media:content>';
+    return $tags;
+}
+
+function ia_email_render_substack_feed()
+{
+    $newsletters = new WP_Query(
+        array(
+            'post_type' => 'ia_newsletter',
+            'post_status' => 'publish',
+            'posts_per_page' => 2,
+            'orderby' => 'date',
+            'order' => 'DESC',
+            'ignore_sticky_posts' => true,
+            'no_found_rows' => true
+        )
+    );
+
+    $date_format = 'D, d M Y H:i:s +0000';
+    $last_build = empty($newsletters->posts)
+        ? gmdate($date_format)
+        : get_post_modified_time($date_format, true, $newsletters->posts[0]);
+    $archive_link = get_post_type_archive_link('ia_newsletter');
+
+    header('Content-Type: application/rss+xml; charset=UTF-8', true);
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:media="http://search.yahoo.com/mrss/">
+<channel>
+    <title><?php echo ia_email_xml_text(get_bloginfo('name')); ?></title>
+    <link><?php echo esc_url($archive_link ? $archive_link : home_url('/')); ?></link>
+    <atom:link href="<?php echo esc_url(get_feed_link('substack')); ?>" rel="self" type="application/rss+xml" />
+    <description><?php echo ia_email_xml_text(get_bloginfo('description')); ?></description>
+    <language><?php echo ia_email_xml_text(get_bloginfo('language')); ?></language>
+    <lastBuildDate><?php echo $last_build; ?></lastBuildDate>
+<?php
+    while ($newsletters->have_posts()) {
+        $newsletters->the_post();
+        $post_id = get_the_ID();
+        $permalink = get_permalink($post_id);
+        // The raw field, not get_the_content(), so <!--more--> and <!--nextpage--> cannot cut the body short.
+        $content = ia_email_substack_header_html($post_id) . "\n\n"
+            . apply_filters('the_content', get_post_field('post_content', $post_id));
+?>
+    <item>
+        <title><?php echo ia_email_xml_text(get_the_title($post_id)); ?></title>
+        <link><?php echo esc_url($permalink); ?></link>
+        <guid isPermaLink="true"><?php echo esc_url($permalink); ?></guid>
+        <pubDate><?php echo get_post_time($date_format, true, $post_id); ?></pubDate>
+        <dc:creator><?php echo ia_email_cdata(get_the_author()); ?></dc:creator>
+        <description><?php echo ia_email_xml_text(get_the_excerpt($post_id)); ?></description>
+        <content:encoded><?php echo ia_email_cdata(ia_email_substack_content($content, $permalink)); ?></content:encoded>
+        <?php echo ia_email_substack_image_tags($post_id); ?>
+
+    </item>
+<?php
+    }
+    wp_reset_postdata();
+?>
+</channel>
+</rss>
+<?php
+}
 
 // Tags allowed in newsletter post_content. No style/class/table markup survives.
 function ia_email_semantic_allowed_html()
@@ -745,29 +1087,47 @@ function ia_email_emoji_images_to_text($html)
     }, $html);
 }
 
+/* Every output format carries real Unicode emoji characters. Two things get in the way: the editor
+   stores emoji as <img class="emoji"> tags, and WordPress writes numeric HTML entities when a
+   column cannot hold a four-byte character. Undo both. Expects unslashed input. */
+function ia_email_emoji_to_unicode($html)
+{
+    $html = ia_email_emoji_images_to_text((string) $html);
+
+    return preg_replace_callback('/&#(x[0-9a-f]+|[0-9]+);/i', function ($matches) {
+        $codepoint = (stripos($matches[1], 'x') === 0)
+            ? hexdec(substr($matches[1], 1))
+            : intval($matches[1]);
+
+        return ia_email_is_emoji_codepoint($codepoint)
+            ? html_entity_decode($matches[0], ENT_QUOTES, 'UTF-8')
+            : $matches[0];
+    }, $html);
+}
+
 // Single-line values such as row headers: inline formatting only.
 function ia_email_semantic_inline($text)
 {
     $allowed = array('strong' => array(), 'b' => array(), 'em' => array(), 'i' => array());
-    return trim(wp_kses(ia_email_emoji_images_to_text(stripslashes((string) $text)), $allowed));
+    return trim(wp_kses(ia_email_emoji_to_unicode(stripslashes((string) $text)), $allowed));
 }
 
 // Rich editor values: paragraphs via wpautop, then strip everything non-semantic.
 function ia_email_semantic_text($html)
 {
-    $html = ia_email_emoji_images_to_text(stripslashes((string) $html));
+    $html = ia_email_emoji_to_unicode(stripslashes((string) $html));
     $html = wp_kses(wpautop($html), ia_email_semantic_allowed_html());
     $html = preg_replace('#<p>(?:\s|&nbsp;|<br\s*/?>)*</p>#i', '', $html);
     return trim($html);
 }
 
-function ia_email_semantic_image($attachment_id, $link = '')
+function ia_email_semantic_image($attachment_id, $link = '', $alt = '')
 {
     $url = $attachment_id ? wp_get_attachment_image_url($attachment_id, 'full') : '';
     if (empty($url)) {
         return '';
     }
-    $alt = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
+    $alt = ia_email_image_alt($attachment_id, $alt);
     $img = '<img src="' . esc_url($url) . '" alt="' . esc_attr($alt) . '" />';
     $link = trim((string) stripslashes($link));
     if ($link !== '') {
@@ -794,15 +1154,15 @@ function ia_email_semantic_buttons($event_buttons)
    Section order mirrors admin-view.php's preview. */
 function ia_email_build_semantic_html()
 {
+    // The header graphic is the post's featured image, so it is not repeated in the content.
     $out = array();
-    $out[] = ia_email_semantic_image(intval(ia_email_get('header_image_id')));
 
     $events = ia_email_get('events');
     foreach ($events as $event) {
         if ($event->event_mute === 'on' || $event->event_featured !== 'on') {
             continue;
         }
-        $header = ia_email_semantic_inline(ia_email_strip_emojis($event->event_header_text));
+        $header = trim(ia_email_strip_emojis(ia_email_semantic_inline($event->event_header_text)));
         $text = ia_email_semantic_text($event->event_text);
 
         if ($event->event_divider === 'on') {
@@ -820,7 +1180,7 @@ function ia_email_build_semantic_html()
             $out[] = '<h3>' . $header . '</h3>';
         }
         foreach (array_slice(ia_email_get_imgs($event->id), 0, 2) as $event_img) {
-            $out[] = ia_email_semantic_image(intval($event_img->event_img_id), $event_img->event_img_link);
+            $out[] = ia_email_semantic_image(intval($event_img->event_img_id), $event_img->event_img_link, $event_img->event_img_alt);
         }
         $out[] = $text;
         $out[] = ia_email_semantic_buttons(ia_email_get_buttons($event->id));
@@ -834,11 +1194,12 @@ function ia_email_build_semantic_html()
         $title = ia_email_semantic_inline($event->event_header_text);
         $event_buttons = ia_email_get_buttons($event->id);
         $link = empty($event_buttons) ? '' : trim(stripslashes($event_buttons[0]->event_button_link));
-        $more_events[] = '<li>' . ($link !== '' ? '<a href="' . esc_url($link) . '">' . $title . '</a>' : $title) . '</li>';
+        // One paragraph per event, like the email's rows; the title's leading emoji stands in for a bullet.
+        $more_events[] = '<p>' . ($link !== '' ? '<a href="' . esc_url($link) . '">' . $title . '</a>' : $title) . '</p>';
     }
     if (!empty($more_events)) {
         $out[] = '<h2>More Volunteer Events</h2>';
-        $out[] = "<ul>\n" . implode("\n", $more_events) . "\n</ul>";
+        $out[] = implode("\n", $more_events);
     }
 
     $out[] = '<p><a href="https://www.indyambassadors.org/events/">👀 See Our Full Calendar! 📅</a></p>';
@@ -847,7 +1208,6 @@ function ia_email_build_semantic_html()
         . '<a href="https://www.indyambassadors.org/events/community/add">an event</a>, '
         . '<a href="https://www.indyambassadors.org/add-ongoing/">an ongoing opportunity</a>, or '
         . '<a href="mailto:volunteeradmin@indyambassadors.org">email us.</a></p>';
-    $out[] = ia_email_semantic_text(ia_email_get('footer_socials'));
 
     return implode("\n\n", array_filter($out, 'strlen'));
 }
@@ -855,9 +1215,9 @@ function ia_email_build_semantic_html()
 // Creates a draft newsletter post; returns the post ID or a WP_Error.
 function ia_email_save_newsletter_post()
 {
-    return wp_insert_post(
+    $post_id = wp_insert_post(
         array(
-            'post_type' => 'newsletter',
+            'post_type' => 'ia_newsletter',
             'post_status' => 'draft',
             'post_title' => sprintf(__('Newsletter – %s', 'textdomain'), date_i18n(get_option('date_format'))),
             // wp_insert_post unslashes its input, so slash to preserve backslashes in content.
@@ -865,4 +1225,16 @@ function ia_email_save_newsletter_post()
         ),
         true
     );
+
+    if (is_wp_error($post_id) || empty($post_id)) {
+        return $post_id;
+    }
+
+    // The newsletter header graphic doubles as the post's featured image.
+    $header_image_id = intval(ia_email_get('header_image_id'));
+    if ($header_image_id && wp_attachment_is_image($header_image_id)) {
+        set_post_thumbnail($post_id, $header_image_id);
+    }
+
+    return $post_id;
 }

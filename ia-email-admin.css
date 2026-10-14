@@ -130,6 +130,16 @@ textarea {
     align-items: center;
 }
 
+.ia-email-header-image-wrapper label,
+.ia-email-header-image-alt {
+    grid-column: 1 / -1;
+}
+
+.ia-email-header-image-alt {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .ia-email-header-image {
     max-height: 200px;
     max-width: 100%;
@@ -174,6 +184,19 @@ textarea {
 .ia-email-tec-dropdown {
     min-width: 200px;
     max-width: 100% !important;
+}
+
+.ia-email-tec-links {
+    margin-left: .5rem;
+    white-space: nowrap;
+}
+
+.ia-email-tec-links[hidden] {
+    display: none;
+}
+
+.ia-email-tec-links a + a {
+    margin-left: .5rem;
 }
 
 .ia-email-events-row-props {
@@ -255,7 +278,8 @@ input:checked+.slider:before {
     margin-top: -.25rem;
 }
 
-.ia-email-event-image-link {
+.ia-email-event-image-link,
+.ia-email-event-image-alt {
     grid-column: 1 / -1;
     width: 100%;
     box-sizing: border-box;

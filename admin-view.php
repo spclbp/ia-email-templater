@@ -1,18 +1,5 @@
 <?php
 //
-if (!function_exists('ia_email_strip_emojis')) {
-    function ia_email_strip_emojis($text)
-    {
-        if (!is_string($text) || $text === '') {
-            return $text;
-        }
-
-        $emoji_pattern = '/[\x{1F1E6}-\x{1F1FF}\x{1F300}-\x{1F5FF}\x{1F600}-\x{1F64F}\x{1F680}-\x{1F6FF}\x{1F700}-\x{1F77F}\x{1F780}-\x{1F7FF}\x{1F800}-\x{1F8FF}\x{1F900}-\x{1F9FF}\x{1FA00}-\x{1FAFF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{FE0F}\x{200D}]/u';
-
-        return preg_replace($emoji_pattern, '', $text);
-    }
-}
-
 if (!function_exists('ia_email_wrap_img_link')) {
     function ia_email_wrap_img_link($link, $img_html)
     {
@@ -22,36 +9,6 @@ if (!function_exists('ia_email_wrap_img_link')) {
         }
 
         return '<a href="' . esc_url($link) . '" style="border: none;">' . $img_html . '</a>';
-    }
-}
-
-if (!function_exists('ia_email_normalize_emoji_images')) {
-    function ia_email_normalize_emoji_images($html)
-    {
-        return preg_replace_callback('/<img\b[^>]*>/i', function ($matches) {
-            $img_html = $matches[0];
-            if (!preg_match('/\bclass\s*=\s*(["\'])(.*?)\1/i', $img_html, $class_match)) {
-                return $img_html;
-            }
-
-            $classes = preg_split('/\s+/', trim($class_match[2]));
-            if (!in_array('emoji', $classes, true) && !in_array('wp-smiley', $classes, true)) {
-                return $img_html;
-            }
-
-            $emoji_style = 'width: 1em !important; height: 1em !important; max-width: none !important; display: inline !important; vertical-align: -.1em;';
-            if (preg_match('/\bstyle\s*=\s*(["\'])(.*?)\1/i', $img_html, $style_match)) {
-                $style = rtrim($style_match[2], '; ') . '; ' . $emoji_style;
-                return preg_replace(
-                    '/\bstyle\s*=\s*(["\'])(.*?)\1/i',
-                    'style=' . $style_match[1] . $style . $style_match[1],
-                    $img_html,
-                    1
-                );
-            }
-
-            return preg_replace('/\s*\/?>$/', ' style="' . $emoji_style . '" />', $img_html, 1);
-        }, $html);
     }
 }
 
@@ -75,7 +32,22 @@ if (!empty($_POST)) {
     <?php if (is_wp_error($newsletter_result)) { ?>
         <div class="notice notice-error is-dismissible"><p>Newsletter post not created: <?php echo esc_html($newsletter_result->get_error_message()); ?></p></div>
     <?php } elseif ($newsletter_result) { ?>
-        <div class="notice notice-success is-dismissible"><p>Newsletter draft created. <a href="<?php echo esc_url(get_edit_post_link($newsletter_result)); ?>">Edit newsletter post</a></p></div>
+        <div class="notice notice-success is-dismissible">
+            <p>Newsletter draft created. <a href="<?php echo esc_url(get_edit_post_link($newsletter_result)); ?>">Edit newsletter post</a></p>
+            <?php
+            /* The header image is the post's featured image and is deliberately not repeated in the
+               body, so say whether it was assigned rather than letting a failure look like an
+               empty post. */
+            if (get_post_thumbnail_id($newsletter_result)) { ?>
+                <p>The header image was set as the featured image.</p>
+                <?php $thumbnail_problem = ia_email_newsletter_thumbnail_problem();
+                if ($thumbnail_problem !== '') { ?>
+                    <p><strong>The editor will not show it:</strong> <?php echo esc_html($thumbnail_problem); ?>.</p>
+                <?php } ?>
+            <?php } else { ?>
+                <p><strong>No featured image was set.</strong> Choose a Header Image in the templater and save before creating the post.</p>
+            <?php } ?>
+        </div>
     <?php } ?>
     <div class="ia-email-admin-inputs">
         <div class="ia-email-admin-inputs-left">
@@ -87,6 +59,8 @@ if (!empty($_POST)) {
                         <img src="<?php echo wp_get_attachment_image_url(ia_email_get('header_image_id'), 'full'); ?>" alt="Header Image Preview" class="ia-email-header-image">
                         <input type="hidden" name="ia-email-header-image" class="ia-email-header-image-id" value="<?php echo ia_email_get('header_image_id'); ?>">
                         <input type="button" value="Choose Image" class="ia-email-button ia-email-select-image-header">
+                        <label for="ia-email-header-image-alt">Header Image Alt Text</label>
+                        <input type="text" name="ia-email-header-image-alt" id="ia-email-header-image-alt" class="ia-email-header-image-alt" placeholder="Describe the image for screen readers" value="<?php echo esc_attr(stripslashes(ia_email_get('header_image_alt'))); ?>">
                     </div>
                     <div style="display:none;"><!--I tried commenting this section out, but saves stopped working -->
                         <label for="ia-email-title-text">Header Text</label>
@@ -145,6 +119,10 @@ if (!empty($_POST)) {
                                                     <option value="<?php echo $event->tec_event_id; ?>" selected>-- <?php echo tribe_get_start_date($event->tec_event_id, false, 'n/j'); ?> <?php echo get_the_title(tribe_get_event($event->tec_event_id)); ?></option>
                                                 <?php } ?>
                                             </select>
+                                            <span class="ia-email-tec-links">
+                                                <a class="ia-email-tec-edit-link" href="#" target="_blank" rel="noopener">Edit event</a>
+                                                <a class="ia-email-tec-view-link" href="#" target="_blank" rel="noopener">View event</a>
+                                            </span>
                                         </div>
                                         <div class="ia-email-events-row-props">
                                             <label class="ia-email-events-prop">
@@ -187,6 +165,8 @@ if (!empty($_POST)) {
                                                 <input type="button" value="Remove Image" class="ia-email-button ia-email-remove-image">
                                                 <label for="ia-email-event-image-link">Image Link (optional)</label>
                                                 <input type="text" name="ia-email-events[][event-image-link][]" class="ia-email-event-image-link" placeholder="https://www.example.com" value="">
+                                                <label for="ia-email-event-image-alt">Image Alt Text</label>
+                                                <input type="text" name="ia-email-events[][event-image-alt][]" class="ia-email-event-image-alt" placeholder="Describe the image for screen readers" value="">
                                             </div>
                                             <?php
                                         } else {
@@ -199,6 +179,8 @@ if (!empty($_POST)) {
                                                     <input type="button" value="Remove Image" class="ia-email-button ia-email-remove-image">
                                                     <label for="ia-email-event-image-link">Image Link (optional)</label>
                                                     <input type="text" name="ia-email-events[][event-image-link][]" class="ia-email-event-image-link" placeholder="https://www.example.com" value="<?php echo esc_attr(stripslashes($event_img->event_img_link)); ?>">
+                                                    <label for="ia-email-event-image-alt">Image Alt Text</label>
+                                                    <input type="text" name="ia-email-events[][event-image-alt][]" class="ia-email-event-image-alt" placeholder="Describe the image for screen readers" value="<?php echo esc_attr(stripslashes($event_img->event_img_alt)); ?>">
                                                 </div>
                                         <?php
                                             }
@@ -288,7 +270,7 @@ if (!empty($_POST)) {
                         <tbody>
                             <tr>
                                 <td align="center" style="width: 100%; max-width: 660px;">
-                                    <img src="<?php echo wp_get_attachment_url(ia_email_get('header_image_id')); ?>" width="100%" alt="" style="width: 100%; height: auto;" />
+                                    <img src="<?php echo wp_get_attachment_url(ia_email_get('header_image_id')); ?>" width="100%" alt="<?php echo esc_attr(ia_email_image_alt(ia_email_get('header_image_id'), ia_email_get('header_image_alt'))); ?>" style="width: 100%; height: auto;" />
                                 </td>
                             </tr>
                             <tr style="height: 16px;"><td></td></tr>
@@ -296,7 +278,7 @@ if (!empty($_POST)) {
                             $row_num=0;
                             foreach ($events as $event) {
                                 if (($event->event_mute !== 'on') && ($event->event_featured == 'on')) {
-                                    $featured_event_header = ia_email_strip_emojis(stripslashes($event->event_header_text));
+                                    $featured_event_header = trim(ia_email_strip_emojis(ia_email_emoji_to_unicode(stripslashes($event->event_header_text))));
                                     if ($event->event_divider == 'on') { ?>
                                         <tr style="background-color: #ffffff;height:20px;"><td></td></tr>
                                         <tr style="background-color: Gainsboro;"><td>
@@ -304,13 +286,13 @@ if (!empty($_POST)) {
                                             <span style="font-size: 36px; font-weight: bold;"><?php echo $featured_event_header; ?></span><br />
                                         </div>
                                         <div style="text-align: center; font-size: 14px; line-height: 1;">
-                                            <?php echo ia_email_normalize_emoji_images(stripslashes($event->event_text)); ?>
+                                            <?php echo ia_email_emoji_to_unicode(stripslashes($event->event_text)); ?>
                                         </div>
                                         </td></tr>
                                     <?php
                                     } else {
                                         $event_header = $featured_event_header;
-                                        $event_text=ia_email_normalize_emoji_images(stripslashes($event->event_text));
+                                        $event_text=ia_email_emoji_to_unicode(stripslashes($event->event_text));
                                         if (empty($event_text) && !empty($event_header)) {
                                             ?><span style="font-size: 0px;"><?php echo $event_header;?></span><?php
                                         } elseif (!empty($event_header)) { ?>
@@ -346,8 +328,8 @@ if (!empty($_POST)) {
                                                 $float_direction = ($event->event_img_right == 'on') ? 'right' : 'left';
                                                 if (count($event_imgs) > 1) { ?>
                                                     <div>
-                                                        <?php echo ia_email_wrap_img_link($event_imgs[0]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full') . '" width="23%" alt="" style="display: inline; width: 32%; max-width: 99px; height: auto; float: ' . $float_direction . '; margin: 0px 0px 2px 2px;" />'); ?>
-                                                        <?php echo ia_email_wrap_img_link($event_imgs[1]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full') . '" width="23%" alt="" style="display: inline; width: 32%; max-width: 99px; height: auto; float: ' . $float_direction . '; margin: 0px 10px 2px 2px;" />'); ?>
+                                                        <?php echo ia_email_wrap_img_link($event_imgs[0]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full') . '" width="23%" alt="' . esc_attr(ia_email_image_alt($event_imgs[0]->event_img_id, $event_imgs[0]->event_img_alt)) . '" style="display: inline; width: 32%; max-width: 99px; height: auto; float: ' . $float_direction . '; margin: 0px 0px 2px 2px;" />'); ?>
+                                                        <?php echo ia_email_wrap_img_link($event_imgs[1]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[1]->event_img_id, 'full') . '" width="23%" alt="' . esc_attr(ia_email_image_alt($event_imgs[1]->event_img_id, $event_imgs[1]->event_img_alt)) . '" style="display: inline; width: 32%; max-width: 99px; height: auto; float: ' . $float_direction . '; margin: 0px 10px 2px 2px;" />'); ?>
                                                         <?php echo $event_text;  ?>
                                                     </div>
                                                     <?php
@@ -355,10 +337,10 @@ if (!empty($_POST)) {
                                                     <?php $event_words = preg_split('/\s+/', $event_text);
                                                     if (count($event_words) > 75) {
                                                         echo implode(" ", array_slice($event_words,0,18)); ?>
-                                                        <?php echo ia_email_wrap_img_link($event_imgs[0]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full') . '" width="47%" alt="" style="display: block; width: 65%; max-width: 200px; height: auto; float: ' . $float_direction . '; margin: 0px 10px 2px 2px;" />'); ?>
+                                                        <?php echo ia_email_wrap_img_link($event_imgs[0]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full') . '" width="47%" alt="' . esc_attr(ia_email_image_alt($event_imgs[0]->event_img_id, $event_imgs[0]->event_img_alt)) . '" style="display: block; width: 65%; max-width: 200px; height: auto; float: ' . $float_direction . '; margin: 0px 10px 2px 2px;" />'); ?>
                                                         <?php echo implode(" ", array_slice($event_words, 18)); 
                                                     } else { ?>
-                                                        <?php echo ia_email_wrap_img_link($event_imgs[0]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full') . '" width="47%" alt="" style="display: block; width: 65%; max-width: 200px; height: auto; float: ' . $float_direction . '; margin: 0px 10px 2px 2px;" />'); ?>
+                                                        <?php echo ia_email_wrap_img_link($event_imgs[0]->event_img_link, '<img src="' . wp_get_attachment_image_url($event_imgs[0]->event_img_id, 'full') . '" width="47%" alt="' . esc_attr(ia_email_image_alt($event_imgs[0]->event_img_id, $event_imgs[0]->event_img_alt)) . '" style="display: block; width: 65%; max-width: 200px; height: auto; float: ' . $float_direction . '; margin: 0px 10px 2px 2px;" />'); ?>
                                                         <?php echo $event_text;    
                                                     }
                                                 } else { 
@@ -387,7 +369,7 @@ if (!empty($_POST)) {
                                                 ?>
                                                 <tr>
                                                     <td style="padding: 8px 12px; border-bottom: 1px solid #cccccc; font-size: 15px; line-height: 1.4;">
-                                                        <a href="<?php echo stripslashes($event_buttons[0]->event_button_link); ?>" style="text-decoration: none;"><?php echo stripslashes($event->event_header_text); ?></a>
+                                                        <a href="<?php echo stripslashes($event_buttons[0]->event_button_link); ?>" style="text-decoration: none;"><?php echo ia_email_emoji_to_unicode(stripslashes($event->event_header_text)); ?></a>
                                                     </td>
                                                 </tr>
                                         <?php
@@ -414,7 +396,7 @@ if (!empty($_POST)) {
                             <tr style="text-align:center">
                                 <td>
                                     <p><?php 
-                                        $footer_text = stripslashes(ia_email_get('footer_socials'));
+                                        $footer_text = ia_email_emoji_to_unicode(stripslashes(ia_email_get('footer_socials')));
                                         // insert html codes to communicate paragraph and line breaks
                                         if (!empty($footer_text)) {
                                             $footer_paragraphs = preg_split('/(\r\n|\n|\r)/', $footer_text);
