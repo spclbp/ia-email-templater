@@ -340,18 +340,16 @@ addEventListener('DOMContentLoaded', () => {
                 const eventButtonLink = (typeof data.website === 'string' && data.website.trim())
                     ? data.website.trim()
                     : eventUrl
-                const primaryImageLink = volunteerLink || eventButtonLink || ''
+                const primaryImageLink = eventUrl || volunteerLink || eventButtonLink || ''
 
                 const buttonConfigs = []
-                if (volunteerLink) {
-                    buttonConfigs.push({ text: 'Volunteer', link: volunteerLink })
-                    if (eventButtonLink) {
-                        buttonConfigs.push({ text: 'Event', link: eventButtonLink })
-                    }
-                } else {
-                    const fallbackLink = data.website || eventUrl || ''
-                    const fallbackText = data.website ? 'Learn More' : 'Volunteer'
-                    buttonConfigs.push({ text: fallbackText, link: fallbackLink })
+                // Send volunteers to the public event page; fall back to the custom field only if TEC gave no URL
+                const volunteerButtonLink = eventUrl || volunteerLink
+                if (volunteerButtonLink) {
+                    buttonConfigs.push({ text: 'Volunteer', link: volunteerButtonLink })
+                }
+                if (eventButtonLink && eventButtonLink !== volunteerButtonLink) {
+                    buttonConfigs.push({ text: 'Event', link: eventButtonLink })
                 }
 
                 if (organizerUrl) {
