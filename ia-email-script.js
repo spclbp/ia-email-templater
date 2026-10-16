@@ -777,7 +777,10 @@ addEventListener('DOMContentLoaded', () => {
         const emoji = typeof data.ia_email_event_emoji === 'string' ? data.ia_email_event_emoji.trim() : ''
         const dateText = formatEventDates(data)
         const venue = data.venue && typeof data.venue.venue === 'string' ? data.venue.venue.trim() : ''
-        return [emoji + ' ' + eventTitle.trim(), dateText, venue].filter(Boolean).join(', ')
+        const city = data.venue && typeof data.venue.city === 'string' ? data.venue.city.trim() : ''
+        const title = [emoji + ' ' + eventTitle.trim(), dateText, venue].filter(Boolean).join(', ')
+        // Only call out the town for events outside Indianapolis
+        return city && city.toLowerCase() !== 'indianapolis' ? `${title} (${city})` : title
     }
 
     function formatEventDates(data) {
