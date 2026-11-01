@@ -1,36 +1,178 @@
 addEventListener('DOMContentLoaded', () => {
 
     const addEventButton = document.querySelector('#add-event')
+    const saveButton = document.querySelector('#ia-email-save')
+    const form = document.querySelector('form')
+    const positionSnapshot = new Map()
+    let draggedRow = null
+    let hasUnsavedChanges = false
+    let bypassUnloadWarning = false
+    let upcomingEvents = null
+    let upcomingEventsRequest = null
 
+    const promotionalImageButton = document.querySelector('.ia-email-select-promotional-image')
+    if (promotionalImageButton) initPromotionalImagePicker(promotionalImageButton)
+    initEventEmojiPicker()
+
+    if (!addEventButton || !form) return
+
+    const markUnsavedChanges = () => {
+        hasUnsavedChanges = true
+    }
+
+    const toPlainText = (value) => {
+        if (typeof value !== 'string' || value === '') return ''
+        const doc = new DOMParser().parseFromString(value, 'text/html')
+        return (doc.body.textContent || '').replace(/\s+/g, ' ').trim()
+    }
+
+    const getEmailHtml = () => {
+        const preview = document.querySelector('#the-preview').cloneNode(true)
+        /* WordPress's emoji script rewrites emoji in the admin DOM as twemoji <img> tags after PHP
+           has rendered the preview, so the copied HTML needs them turned back into characters.
+           An image with no alt text has no character to fall back to, so it keeps the old inline
+           sizing instead of being dropped. */
+        preview.querySelectorAll('img.emoji, img.wp-smiley').forEach((image) => {
+            const character = image.getAttribute('alt') || ''
+            if (character) {
+                image.replaceWith(document.createTextNode(character))
+                return
+            }
+            image.style.width = '1em'
+            image.style.height = '1em'
+            image.style.maxWidth = 'none'
+            image.style.display = 'inline'
+            image.style.verticalAlign = '-.1em'
+        })
+        return preview.innerHTML
+    }
+
+    updateEventLinks()
     getEvents()
     currentRows()
+    capturePositions()
 
     addEventButton.addEventListener('click', (e) => {
         e.preventDefault()
         createEvent()
     })
 
-    function getEvents() {
-        fetch('https://www.indyambassadors.org/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=today').then(res => res.json()).then(data => {
+    form.addEventListener('input', markUnsavedChanges)
+    form.addEventListener('change', markUnsavedChanges)
 
-            let filteredData = data.events.filter((value, index, self) => {
-                return self.findIndex(event => event.title === value.title) === index;
+    ;[saveButton, document.querySelector('#ia-email-save-newsletter')].forEach((button) => {
+        if (button) {
+            button.addEventListener('click', () => {
+                bypassUnloadWarning = true
+            })
+        }
+    })
+
+    window.addEventListener('beforeunload', (e) => {
+        if (!hasUnsavedChanges || bypassUnloadWarning) return
+        e.preventDefault()
+        e.returnValue = ''
+    })
+
+    // Fetches every page of upcoming TEC events once and caches the result
+    function getEvents() {
+        if (!upcomingEventsRequest) {
+            upcomingEventsRequest = (async () => {
+                // Skip events starting within the next 3 days (today, tomorrow, and the day after)
+                const cutoff = new Date()
+                cutoff.setDate(cutoff.getDate() + 3)
+                const pad = (n) => String(n).padStart(2, '0')
+                const cutoffDate = `${cutoff.getFullYear()}-${pad(cutoff.getMonth() + 1)}-${pad(cutoff.getDate())}`
+
+                let events = []
+                let url = `https://www.indyambassadors.org/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=${cutoffDate}`
+                while (url) {
+                    const data = await fetch(url).then(res => res.json())
+                    events = events.concat(data.events || [])
+                    url = data.next_rest_url || null
+                }
+                upcomingEvents = events
+                    .filter(event => (event.start_date || '') >= cutoffDate)
+                    .map(event => {
+                        const [, month, day] = event.start_date.split(' ')[0].split('-')
+                        return {
+                            id: String(event.id),
+                            title: event.title.toString().replace(/(<([^>]+)>)/ig, '').replace('#038;', ''),
+                            date: `${Number(month)}/${Number(day)}`
+                        }
+                    })
+                return upcomingEvents
+            })().catch(err => {
+                upcomingEventsRequest = null
+                console.error('Unable to load TEC events', err)
+            })
+        }
+        return upcomingEventsRequest.then(refreshEventDropdowns)
+    }
+
+    // Points each row's edit/view links at its selected TEC event, hiding them when none is chosen
+    function updateEventLinks() {
+        for (let dropdown of document.querySelectorAll('.ia-email-tec-dropdown')) {
+            const links = dropdown.parentElement.querySelector('.ia-email-tec-links')
+            if (!links) continue
+            const id = encodeURIComponent(dropdown.value)
+            links.hidden = dropdown.value === 'none' || dropdown.value === ''
+            links.querySelector('.ia-email-tec-edit-link').href = `https://www.indyambassadors.org/wp-admin/post.php?post=${id}&action=edit`
+            links.querySelector('.ia-email-tec-view-link').href = `https://www.indyambassadors.org/?post_type=tribe_events&p=${id}`
+        }
+    }
+
+    // Rebuilds each dropdown, leaving out events already chosen in another visible row
+    function refreshEventDropdowns() {
+        updateEventLinks()
+        if (!upcomingEvents) return
+
+        const titleById = new Map(upcomingEvents.map(event => [event.id, event.title]))
+        const dropdowns = [...document.querySelectorAll('.ia-email-tec-dropdown')].filter(dropdown => {
+            const row = dropdown.closest('.ia-email-events-row')
+            const header = row && row.querySelector('.event-row-header')
+            return !(header && header.value === 'delete')
+        })
+
+        for (let dropdown of dropdowns) {
+            const currentValue = dropdown.value
+            const currentOption = dropdown.selectedOptions[0]
+            const currentTitle = titleById.get(currentValue)
+            const takenIds = new Set()
+            const takenTitles = new Set()
+
+            for (let other of dropdowns) {
+                if (other === dropdown || other.value === 'none') continue
+                takenIds.add(other.value)
+                if (titleById.has(other.value)) takenTitles.add(titleById.get(other.value))
+            }
+
+            const seenTitles = new Set()
+            const available = upcomingEvents.filter(event => {
+                if (event.id !== currentValue) {
+                    if (takenIds.has(event.id) || takenTitles.has(event.title) || seenTitles.has(event.title)) return false
+                    if (event.title === currentTitle) return false
+                }
+                seenTitles.add(event.title)
+                return true
             })
 
-            initDropdowns = document.querySelectorAll('.ia-email-tec-dropdown')
-
-            for (let dropdown of initDropdowns) {
-                if (dropdown.options.length <= 2) {
-                    for (let event of filteredData) {
-                        let option = document.createElement('option')
-                        option.textContent = event.title.toString().replace(/(<([^>]+)>)/ig, '').replace('#038;', '')
-                        option.value = event.id
-                        dropdown.append(option)
-                    }
-                }
+            const options = [new Option('None', 'none')]
+            if (currentValue !== 'none' && !available.some(event => event.id === currentValue) && currentOption) {
+                options.push(new Option(currentOption.textContent, currentValue))
             }
-        })
+            for (let event of available) {
+                options.push(new Option(`${event.date} ${event.title}`, event.id))
+            }
+
+            dropdown.replaceChildren(...options)
+            dropdown.value = currentValue
+        }
     }
+
+    form.addEventListener('change', (e) => {
+        if (e.target.classList.contains('ia-email-tec-dropdown')) refreshEventDropdowns()
+    })
 
     function populateRow(el, id) {
         let elParent = el.parentElement.parentElement
@@ -41,23 +183,221 @@ addEventListener('DOMContentLoaded', () => {
         let elButtonText = elParent.querySelector('[name="ia-email-events[][event-button][text][]"]')
         let elLink = elParent.querySelector('[name="ia-email-events[][event-button][link][]"]')
         let elTwoImages = elParent.querySelector('[name="ia-email-events[][event-two-imgs]"]')
+        let elMute = elParent.querySelector('[name="ia-email-events[][event-mute]"]')
         let elButtonRows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
         if (id != 'none') {
-            fetch(`https://www.indyambassadors.org/wp-json/tribe/events/v1/events/${id}`).then(res => res.json()).then(data => {
-                rowLabel.textContent = data.title
-                elHeader.value = data.title
+            fetch(`https://www.indyambassadors.org/wp-json/tribe/events/v1/events/${id}`).then(res => res.json()).then(async data => {
+                let promotionalImage = data.ia_email_promotional_image
+                try {
+                    const postResponse = await fetch(`https://www.indyambassadors.org/wp-json/wp/v2/tribe_events/${id}`)
+                    if (postResponse.ok) {
+                        const postData = await postResponse.json()
+                        promotionalImage = postData.ia_email_promotional_image || promotionalImage
+                        data.ia_email_event_emoji = postData.ia_email_event_emoji || data.ia_email_event_emoji
+                    }
+                } catch (error) {
+                }
+
+                const getPlainTextValue = (value) => {
+                    if (typeof value === 'string') return value
+                    if (value && typeof value.rendered === 'string') return value.rendered
+                    return ''
+                }
+
+                const getRenderedValue = (value) => {
+                    if (typeof value === 'string') return value
+                    if (value && typeof value.rendered === 'string') return value.rendered
+                    return ''
+                }
+
+                const getMeaningfulText = (html) => {
+                    if (!html) return ''
+                    const doc = new DOMParser().parseFromString(html, 'text/html')
+                    return (doc.body.textContent || '').replace(/\s+/g, ' ').trim()
+                }
+
+                const cleanseDescription = (html) => {
+                    if (!html) return ''
+                    const doc = new DOMParser().parseFromString(html, 'text/html')
+                    doc.querySelectorAll('img,script,style').forEach(node => node.remove())
+                    const paragraphs = Array.from(doc.querySelectorAll('p'))
+                        .map(p => (p.textContent || '').trim())
+                        .filter(Boolean)
+                    if (paragraphs.length > 0) {
+                        return paragraphs.join('\n\n')
+                    }
+                    return (doc.body.textContent || '').replace(/\s+/g, ' ').trim()
+                }
+
+                const pickImage = (image) => {
+                    if (!image || typeof image !== 'object') {
+                        return { url: '', id: '' }
+                    }
+
+                    const preferredSize = image.sizes && (
+                        image.sizes.thumbnail
+                        || image.sizes['gallery-thumbnail']
+                        || image.sizes.medium
+                        || image.sizes.large
+                        || image.sizes.billboard
+                    )
+                    return {
+                        url: (preferredSize && preferredSize.url) || image.url || '',
+                        id: image.id || '',
+                        alt: image.alt || ''
+                    }
+                }
+
+                const getVolunteerLinkFromCustomFields = (customFields) => {
+                    if (!customFields || typeof customFields !== 'object') return ''
+
+                    const isLikelyUrl = (value) => {
+                        if (typeof value !== 'string') return false
+                        return /^https?:\/\//i.test(value.trim())
+                    }
+
+                    // First pass: exact label match to avoid false positives like "Volunteer Perks".
+                    for (const key of Object.keys(customFields)) {
+                        const field = customFields[key]
+                        if (!field || typeof field !== 'object') continue
+
+                        const label = (field.label || '').toString().trim().toLowerCase()
+                        const value = (field.value || '').toString().trim()
+
+                        if (label === 'volunteer link' && isLikelyUrl(value)) {
+                            return value
+                        }
+                    }
+
+                    // Fallback: look for a volunteer-labeled field that is actually a URL.
+                    for (const key of Object.keys(customFields)) {
+                        const field = customFields[key]
+                        if (!field || typeof field !== 'object') continue
+
+                        const label = (field.label || '').toString().trim().toLowerCase()
+                        const value = (field.value || '').toString().trim()
+
+                        if (!value) continue
+                        if (label.includes('volunteer') && isLikelyUrl(value)) {
+                            return value
+                        }
+                    }
+
+                    return ''
+                }
+
+                const getOrganizerUrl = (organizer) => {
+                    if (!organizer) return ''
+
+                    const normalizeLink = (value) => {
+                        if (typeof value !== 'string') return ''
+                        return value.trim()
+                    }
+
+                    const getPreferredOrganizerLink = (entry) => {
+                        if (!entry || typeof entry !== 'object') return ''
+                        return normalizeLink(entry.website) || normalizeLink(entry.url)
+                    }
+
+                    if (Array.isArray(organizer)) {
+                        for (const person of organizer) {
+                            const preferredLink = getPreferredOrganizerLink(person)
+                            if (preferredLink) {
+                                return preferredLink
+                            }
+                        }
+                        return ''
+                    }
+
+                    return getPreferredOrganizerLink(organizer)
+                }
+
+                const ensureButtonRows = (desiredCount) => {
+                    let rows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
+
+                    while (rows.length < desiredCount) {
+                        const addBtn = rows[rows.length - 1].querySelector('.ia-email-button-add')
+                        createEventButtons(addBtn)
+                        rows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
+                    }
+
+                    while (rows.length > desiredCount) {
+                        rows[rows.length - 1].remove()
+                        rows = elParent.querySelectorAll('.ia-email-event-button-wrapper')
+                    }
+
+                    return rows
+                }
+
+                const eventTitle = getPlainTextValue(data.title)
+                const newsletterTitle = formatNewsletterEventTitle(data, eventTitle)
+                const selectedImage = pickImage(promotionalImage && (promotionalImage.id || promotionalImage.url)
+                    ? promotionalImage
+                    : data.image)
+                const volunteerLink = getVolunteerLinkFromCustomFields(data.custom_fields)
+                const organizerUrl = getOrganizerUrl(data.organizer)
+                const eventUrl = (typeof data.url === 'string' && data.url.trim()) ? data.url.trim() : ''
+                const eventButtonLink = (typeof data.website === 'string' && data.website.trim())
+                    ? data.website.trim()
+                    : eventUrl
+                const primaryImageLink = eventUrl || volunteerLink || eventButtonLink || ''
+
+                const buttonConfigs = []
+                // Send volunteers to the public event page; fall back to the custom field only if TEC gave no URL
+                const volunteerButtonLink = eventUrl || volunteerLink
+                if (volunteerButtonLink) {
+                    buttonConfigs.push({ text: 'Volunteer', link: volunteerButtonLink })
+                }
+                if (eventButtonLink && eventButtonLink !== volunteerButtonLink) {
+                    buttonConfigs.push({ text: 'Event', link: eventButtonLink })
+                }
+
+                if (organizerUrl) {
+                    buttonConfigs.push({ text: 'Organizer', link: organizerUrl })
+                }
+
+                const primaryImageAlt = selectedImage.alt || toPlainText(eventTitle)
+
+                rowLabel.textContent = toPlainText(newsletterTitle)
+                elHeader.value = newsletterTitle
+                elMute.checked = false
+                handleMute(elMute)
                 if (elImages.length > 1) {
-                    elImages[0].querySelector('.ia-email-event-image-preview').src = data.image.url
-                    elImages[0].querySelector('.ia-email-event-image-image-id').value = data.image.id
+                    elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
+                    elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
+                    elImages[0].querySelector('.ia-email-event-image-link').value = primaryImageLink
+                    elImages[0].querySelector('.ia-email-event-image-alt').value = selectedImage.id ? primaryImageAlt : ''
+                    syncRemoveImageVisibility(elImages[0])
                     elImages[1].remove()
                 } else {
-                    elImages[0].querySelector('.ia-email-event-image-preview').src = data.image.url
-                    elImages[0].querySelector('.ia-email-event-image-image-id').value = data.image.id
+                    elImages[0].querySelector('.ia-email-event-image-preview').src = selectedImage.url
+                    elImages[0].querySelector('.ia-email-event-image-image-id').value = selectedImage.id
+                    elImages[0].querySelector('.ia-email-event-image-link').value = primaryImageLink
+                    elImages[0].querySelector('.ia-email-event-image-alt').value = selectedImage.id ? primaryImageAlt : ''
+                    syncRemoveImageVisibility(elImages[0])
                 }
                 elTwoImages.checked = false
-                elText.value = data.description
-                elButtonText.value = 'Volunteer'
-                elLink.value = data.url
+
+                const excerptRaw = getRenderedValue(data.excerpt)
+                const excerptText = getMeaningfulText(excerptRaw) ? excerptRaw : ''
+                const descriptionRaw = getRenderedValue(data.description)
+                const fallbackDescription = cleanseDescription(descriptionRaw)
+                const nextText = excerptText || fallbackDescription
+
+                elText.value = nextText
+                if (elText.id && typeof tinyMCE !== 'undefined') {
+                    const editor = tinyMCE.get(elText.id)
+                    if (editor) editor.setContent(nextText)
+                }
+
+                const resolvedButtons = buttonConfigs.length > 0 ? buttonConfigs : [{ text: '', link: '' }]
+                const buttonRows = ensureButtonRows(resolvedButtons.length)
+
+                resolvedButtons.forEach((button, index) => {
+                    const row = buttonRows[index]
+                    row.querySelector('[name="ia-email-events[][event-button][text][]"]').value = button.text
+                    row.querySelector('[name="ia-email-events[][event-button][link][]"]').value = button.link
+                })
             })
         } else {
             rowLabel.textContent = ''
@@ -65,10 +405,16 @@ addEventListener('DOMContentLoaded', () => {
             if (elImages.length > 1) {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
                 elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
+                elImages[0].querySelector('.ia-email-event-image-link').value = ''
+                elImages[0].querySelector('.ia-email-event-image-alt').value = ''
+                syncRemoveImageVisibility(elImages[0])
                 elImages[1].remove()
             } else {
                 elImages[0].querySelector('.ia-email-event-image-preview').src = ''
                 elImages[0].querySelector('.ia-email-event-image-image-id').value = ''
+                elImages[0].querySelector('.ia-email-event-image-link').value = ''
+                elImages[0].querySelector('.ia-email-event-image-alt').value = ''
+                syncRemoveImageVisibility(elImages[0])
             }
             elTwoImages.checked = false
             elText.value = ''
@@ -89,6 +435,7 @@ addEventListener('DOMContentLoaded', () => {
 
         for (let [i, row] of rows.entries()) {
             let selectImageButton = row.querySelector('.ia-email-select-image')
+            let selectRemoveImageButtons = row.querySelectorAll('.ia-email-remove-image')
             let selectMinimizeButton = row.querySelector('.ia-email-minimize')
             let selectMaximizeButton = row.querySelector('.ia-email-maximize')
             let selectRemoveButton = row.querySelector('.ia-email-remove')
@@ -102,16 +449,22 @@ addEventListener('DOMContentLoaded', () => {
             let selectMoveRowUp = row.querySelector('.ia-email-move-up')
             let isMinimized = row.querySelector('[name="ia-email-events[][event-minimized]"]')
 
+            row.dataset.dirty = 'false'
+            row.addEventListener('change', () => { row.dataset.dirty = 'true' })
+            row.addEventListener('input', () => { row.dataset.dirty = 'true' })
+
             selectMinimizeButton.addEventListener('click', (e) => {
                 e.preventDefault()
                 selectMinimizeButton.parentNode.parentNode.parentNode.classList.add('ia-email-events-row-hide')
                 isMinimized.value = "yes"
+                row.dataset.dirty = 'true'
             })
 
             selectMaximizeButton.addEventListener('click', (e) => {
                 e.preventDefault()
                 selectMaximizeButton.parentNode.parentNode.parentNode.classList.remove('ia-email-events-row-hide')
                 isMinimized.value = "no"
+                row.dataset.dirty = 'true'
             })
 
             selectRemoveButton.addEventListener('click', (e) => {
@@ -120,6 +473,8 @@ addEventListener('DOMContentLoaded', () => {
                     //selectRemoveButton.parentNode.parentNode.parentNode.remove()
                     selectRemoveButton.parentNode.parentNode.parentNode.querySelector('.event-row-header').value = 'delete';
                     selectRemoveButton.parentNode.parentNode.parentNode.style.display = 'none';
+                    row.dataset.dirty = 'true'
+                    refreshEventDropdowns()
                 }
             })
 
@@ -132,7 +487,12 @@ addEventListener('DOMContentLoaded', () => {
                     imgWrap.after(imgWrapClone)
                     imgWrapClone.querySelector('.ia-email-event-image-id').value = ''
                     imgWrapClone.querySelector('.ia-email-event-image-preview').src = ''
+                    imgWrapClone.querySelector('.ia-email-event-image-image-id').value = ''
+                    imgWrapClone.querySelector('.ia-email-event-image-link').value = ''
+                    imgWrapClone.querySelector('.ia-email-event-image-alt').value = ''
                     initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
+                    initRemoveImage(imgWrapClone.querySelector('.ia-email-remove-image'))
+                    syncRemoveImageVisibility(imgWrapClone)
                 } else {
                     imgWrap.nextElementSibling.remove()
                 }
@@ -152,6 +512,8 @@ addEventListener('DOMContentLoaded', () => {
                 e.addEventListener('click', (f) => {
                     f.preventDefault()
                     createEventButtons(e)
+                    row.dataset.dirty = 'true'
+                    markUnsavedChanges()
                 })
             })
 
@@ -162,11 +524,16 @@ addEventListener('DOMContentLoaded', () => {
                         //e.parentElement.parentElement.remove()
                         e.parentElement.parentElement.querySelector('.event-button-text').value = 'delete';
                         e.parentElement.parentElement.style.display = 'none';
+                        row.dataset.dirty = 'true'
+                        markUnsavedChanges()
                     }
                 })
             })
 
             initSelectImage(selectImageButton)
+            selectRemoveImageButtons.forEach((button) => initRemoveImage(button))
+            row.querySelectorAll('.ia-email-event-image-wrapper').forEach((wrapper) => syncRemoveImageVisibility(wrapper))
+            initDraggable(row)
 
 
             selectDropdown.addEventListener('change', (e) => {
@@ -192,14 +559,20 @@ addEventListener('DOMContentLoaded', () => {
         el.classList.add('ia-email-events-row')
         el.innerHTML = document.querySelector('.ia-email-events-row').innerHTML
         emailEventsWrapper.append(el)
+        el.dataset.dirty = 'true'
+        markUnsavedChanges()
+        initDraggable(el)
         el.querySelector('.ia-email-event-image-preview').src = ''
         el.querySelector('.ia-email-event-image-id').value = ''
         //CLB 1/25/25 - incremental saves
         el.querySelector('.ia-email-event-id').value = ''
         el.querySelector('.ia-email-event-image-image-id').value = ''
+        el.querySelector('.ia-email-event-image-link').value = ''
+        el.querySelector('.ia-email-event-image-alt').value = ''
         //CLB 1/25/25 - incremental saves
 
         let imageButton = el.querySelector('.ia-email-select-image')
+        let removeImageButton = el.querySelector('.ia-email-remove-image')
         let moveRowDownButton = el.querySelector('.ia-email-move-down')
         let moveRowUpButton = el.querySelector('.ia-email-move-up')
         let minimizeButton = el.querySelector('.ia-email-minimize')
@@ -213,6 +586,7 @@ addEventListener('DOMContentLoaded', () => {
         let eventButtonAdd = el.querySelector('.ia-email-button-add')
         let eventButtonRemove = el.querySelector('.ia-email-button-remove')
         dropdown.value = 'none'
+        el.querySelector('.ia-email-tec-links').hidden = true
         featured.checked = false
         multiImage.checked = false
 
@@ -226,6 +600,8 @@ addEventListener('DOMContentLoaded', () => {
 
         populateRow(dropdown, dropdown.value)
         initSelectImage(imageButton)
+        initRemoveImage(removeImageButton)
+        el.querySelectorAll('.ia-email-event-image-wrapper').forEach((wrapper) => syncRemoveImageVisibility(wrapper))
 
         moveRowDownButton.addEventListener('click', (e) => {
             e.preventDefault()
@@ -240,16 +616,19 @@ addEventListener('DOMContentLoaded', () => {
         minimizeButton.addEventListener('click', (e) => {
             e.preventDefault()
             el.classList.add('ia-email-events-row-hide')
+            el.dataset.dirty = 'true'
         })
 
         maximizeButton.addEventListener('click', (e) => {
             e.preventDefault()
             el.classList.remove('ia-email-events-row-hide')
+            el.dataset.dirty = 'true'
         })
 
         removeButton.addEventListener('click', (e) => {
             e.preventDefault()
             el.remove()
+            refreshEventDropdowns()
         })
 
         multiImage.addEventListener('click', () => {
@@ -257,7 +636,14 @@ addEventListener('DOMContentLoaded', () => {
             const imgWrapClone = imgWrap.cloneNode(true)
             if (multiImage.checked) {
                 imgWrap.after(imgWrapClone)
+                imgWrapClone.querySelector('.ia-email-event-image-id').value = ''
+                imgWrapClone.querySelector('.ia-email-event-image-preview').src = ''
+                imgWrapClone.querySelector('.ia-email-event-image-image-id').value = ''
+                imgWrapClone.querySelector('.ia-email-event-image-link').value = ''
+                imgWrapClone.querySelector('.ia-email-event-image-alt').value = ''
                 initSelectImage(imgWrapClone.querySelector('.ia-email-select-image'))
+                initRemoveImage(imgWrapClone.querySelector('.ia-email-remove-image'))
+                syncRemoveImageVisibility(imgWrapClone)
             } else {
                 imgWrap.nextElementSibling.remove()
             }
@@ -315,9 +701,171 @@ addEventListener('DOMContentLoaded', () => {
                 attachment = file_frame.state().get('selection').first().toJSON()
                 el.parentElement.getElementsByClassName("ia-email-event-image-preview")[0].src = attachment.url
                 el.parentElement.getElementsByClassName("ia-email-event-image-image-id")[0].value = attachment.id
+                // A different image needs a different description, so seed it from the media library.
+                el.parentElement.getElementsByClassName("ia-email-event-image-alt")[0].value = attachment.alt || ''
+                syncRemoveImageVisibility(el.closest('.ia-email-event-image-wrapper'))
                 wp.media.model.settings.post.id = wp_media_post_id
+                const dirtyRow = el.closest('.ia-email-events-row')
+                if (dirtyRow) dirtyRow.dataset.dirty = 'true'
+                markUnsavedChanges()
             })
             file_frame.open()
+        })
+    }
+
+    function initPromotionalImagePicker(el) {
+        let file_frame
+        const wrapper = el.closest('.ia-email-event-promotional-photo')
+        const preview = wrapper.querySelector('.ia-email-event-promotional-photo-preview')
+        const imageId = wrapper.querySelector('.ia-email-promotional-image-id')
+        const removeButton = wrapper.querySelector('.ia-email-remove-promotional-image')
+
+        el.addEventListener('click', (e) => {
+            e.preventDefault()
+
+            if (!file_frame) {
+                file_frame = wp.media({
+                    title: 'Set promotional photo',
+                    button: { text: 'Use this photo' },
+                    multiple: false
+                })
+
+                file_frame.on('select', () => {
+                    const attachment = file_frame.state().get('selection').first().toJSON()
+                    preview.src = attachment.url
+                    imageId.value = attachment.id
+                    removeButton.style.display = ''
+                })
+            }
+
+            file_frame.open()
+        })
+
+        removeButton.addEventListener('click', (e) => {
+            e.preventDefault()
+            preview.src = ''
+            imageId.value = ''
+            removeButton.style.display = 'none'
+        })
+    }
+
+    function initEventEmojiPicker() {
+        const emojiInput = document.querySelector('#ia_email_event_emoji')
+        const customEmojiInput = document.querySelector('#ia_email_event_emoji_custom')
+        if (!emojiInput) return
+
+        if (customEmojiInput) {
+            customEmojiInput.addEventListener('input', () => {
+                emojiInput.value = customEmojiInput.value.trim()
+                document.querySelectorAll('.ia-email-event-emoji-option').forEach((option) => {
+                    option.classList.toggle('selected', option.dataset.emoji === emojiInput.value)
+                })
+            })
+        }
+
+        document.querySelectorAll('.ia-email-event-emoji-option').forEach((button) => {
+            button.addEventListener('click', () => {
+                emojiInput.value = button.dataset.emoji || ''
+                if (customEmojiInput) customEmojiInput.value = emojiInput.value
+                document.querySelectorAll('.ia-email-event-emoji-option').forEach((option) => option.classList.remove('selected'))
+                button.classList.add('selected')
+            })
+        })
+    }
+
+    function formatNewsletterEventTitle(data, eventTitle) {
+        const emoji = typeof data.ia_email_event_emoji === 'string' ? data.ia_email_event_emoji.trim() : ''
+        const dateText = formatEventDates(data)
+        const venue = data.venue && typeof data.venue.venue === 'string' ? data.venue.venue.trim() : ''
+        const city = data.venue && typeof data.venue.city === 'string' ? data.venue.city.trim() : ''
+        const title = [emoji + ' ' + eventTitle.trim(), dateText, venue].filter(Boolean).join(', ')
+        // Only call out the town for events outside Indianapolis
+        return city && city.toLowerCase() !== 'indianapolis' ? `${title} (${city})` : title
+    }
+
+    function formatEventDates(data) {
+        if (data.all_day) {
+            return formatEventDate(data.start_date_details) + (isDifferentEventDay(data) ? '-' + formatEventDate(data.end_date_details) : '')
+        }
+
+        const startDate = formatEventDate(data.start_date_details)
+        const endDate = formatEventDate(data.end_date_details)
+        const startTime = formatEventTime(data.start_date_details, true)
+        const endTime = formatEventTime(data.end_date_details, true)
+        if (!startDate || !startTime) return ''
+        if (!isDifferentEventDay(data)) {
+            const sameMeridiem = getEventMeridiem(data.start_date_details) === getEventMeridiem(data.end_date_details)
+            const displayStartTime = sameMeridiem ? formatEventTime(data.start_date_details, false) : startTime
+            return startDate + ' ' + displayStartTime + '-' + endTime
+        }
+        return startDate + ' ' + startTime + '-' + endDate + ' ' + endTime
+    }
+
+    function formatEventDate(details) {
+        if (!details || !details.year || !details.month || !details.day) return ''
+        const date = new Date(Number(details.year), Number(details.month) - 1, Number(details.day))
+        const weekdays = ['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat']
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+        const day = Number(details.day)
+        const suffix = day % 100 >= 11 && day % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] || 'th')
+        return weekdays[date.getDay()] + ' ' + months[date.getMonth()] + ' ' + day + suffix
+    }
+
+    function formatEventTime(details, includeMeridiem) {
+        if (!details || details.hour === undefined || details.minutes === undefined) return ''
+        const hour = Number(details.hour)
+        const minutes = String(details.minutes).padStart(2, '0')
+        const displayHour = hour % 12 || 12
+        return displayHour + ':' + minutes + (includeMeridiem ? getEventMeridiem(details) : '')
+    }
+
+    function getEventMeridiem(details) {
+        return Number(details.hour) >= 12 ? 'pm' : 'am'
+    }
+
+    function isDifferentEventDay(data) {
+        const start = data.start_date_details
+        const end = data.end_date_details
+        return !start || !end || start.year !== end.year || start.month !== end.month || start.day !== end.day
+    }
+
+    function syncRemoveImageVisibility(imageWrapper) {
+        if (!imageWrapper) return
+        const removeButton = imageWrapper.querySelector('.ia-email-remove-image')
+        const imageIdInput = imageWrapper.querySelector('.ia-email-event-image-image-id')
+        if (!removeButton || !imageIdInput) return
+
+        removeButton.style.display = imageIdInput.value ? '' : 'none'
+    }
+
+    function initRemoveImage(el) {
+        if (!el) return
+
+        el.addEventListener('click', (e) => {
+            e.preventDefault()
+
+            const imageWrapper = el.closest('.ia-email-event-image-wrapper')
+            if (!imageWrapper) return
+
+            imageWrapper.querySelector('.ia-email-event-image-preview').src = ''
+            imageWrapper.querySelector('.ia-email-event-image-image-id').value = ''
+            imageWrapper.querySelector('.ia-email-event-image-link').value = ''
+            imageWrapper.querySelector('.ia-email-event-image-alt').value = ''
+            syncRemoveImageVisibility(imageWrapper)
+
+            const row = el.closest('.ia-email-events-row')
+            if (row) {
+                row.dataset.dirty = 'true'
+                const imageWrappers = row.querySelectorAll('.ia-email-event-image-wrapper')
+                const isSecondaryImage = imageWrappers.length > 1 && imageWrappers[0] !== imageWrapper
+                if (isSecondaryImage) {
+                    imageWrapper.remove()
+                    const twoImagesToggle = row.querySelector('[name="ia-email-events[][event-two-imgs]"]')
+                    if (twoImagesToggle) twoImagesToggle.checked = false
+                }
+            }
+
+            markUnsavedChanges()
         })
     }
 
@@ -348,6 +896,7 @@ addEventListener('DOMContentLoaded', () => {
                 attachment = file_frame.state().get('selection').first().toJSON()
                 el.previousElementSibling.previousElementSibling.src = attachment.url
                 el.previousElementSibling.value = attachment.id
+                el.parentElement.querySelector('.ia-email-header-image-alt').value = attachment.alt || ''
                 wp.media.model.settings.post.id = wp_media_post_id
             })
             file_frame.open()
@@ -356,6 +905,7 @@ addEventListener('DOMContentLoaded', () => {
 
     function createEventButtons(el) {
         let elParent = el.parentElement.parentElement
+        const dirtyRow = el.closest('.ia-email-events-row')
         let newBtnRow = document.createElement('div')
         newBtnRow.classList.add('ia-email-event-button-wrapper')
         newBtnRow.innerHTML = document.querySelector('.ia-email-event-button-wrapper').innerHTML
@@ -363,6 +913,8 @@ addEventListener('DOMContentLoaded', () => {
             e.value = ''
         })
         elParent.after(newBtnRow)
+        if (dirtyRow) dirtyRow.dataset.dirty = 'true'
+        markUnsavedChanges()
         let newAddBtn = newBtnRow.querySelector('.ia-email-button-add')
         let newRemBtn = newBtnRow.querySelector('.ia-email-button-remove')
         newAddBtn.addEventListener('click', (e) => {
@@ -372,6 +924,8 @@ addEventListener('DOMContentLoaded', () => {
         newRemBtn.addEventListener('click', (e) => {
             e.preventDefault()
             newBtnRow.remove()
+            if (dirtyRow) dirtyRow.dataset.dirty = 'true'
+            markUnsavedChanges()
         })
     }
 
@@ -396,9 +950,11 @@ addEventListener('DOMContentLoaded', () => {
     function handleDivider(el) {
         const parentEl = el.parentElement.parentElement.parentElement.parentElement
         if (el.checked) {
-            parentEl.querySelector('.ia-email-events-row-header-label').textContent = 'Divider: ' + parentEl.querySelector('.event-row-header').value;
+            const plainHeader = toPlainText(parentEl.querySelector('.event-row-header').value)
+            parentEl.querySelector('.ia-email-events-row-header-label').textContent = 'Divider: ' + plainHeader;
             parentEl.querySelector('.ia-email-events-get-tec').style.display = 'none'
             parentEl.querySelector('.ia-email-tec-dropdown').value = 'none'
+            refreshEventDropdowns()
             parentEl.querySelector('[for="ia-email-event-image"]').style.display = 'none'
             parentEl.querySelector('.ia-email-event-image-wrapper').style.display = 'none'
             parentEl.querySelector('.ia-email-event-image-preview').src = ''
@@ -422,13 +978,146 @@ addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    const eventsWrapper = document.querySelector('.ia-email-events-wrapper')
+    const dropIndicator = document.createElement('div')
+    dropIndicator.className = 'ia-email-drop-indicator'
+
+    eventsWrapper.addEventListener('dragover', (e) => {
+        e.preventDefault()
+        const targetRow = e.target.closest('.ia-email-events-row')
+        if (targetRow && targetRow !== draggedRow) {
+            const rect = targetRow.getBoundingClientRect()
+            if (e.clientY < rect.top + rect.height / 2) {
+                targetRow.before(dropIndicator)
+            } else {
+                targetRow.after(dropIndicator)
+            }
+        }
+    })
+
+    eventsWrapper.addEventListener('dragleave', (e) => {
+        if (!eventsWrapper.contains(e.relatedTarget)) {
+            dropIndicator.remove()
+        }
+    })
+
+    eventsWrapper.addEventListener('drop', (e) => {
+        e.preventDefault()
+        if (draggedRow && dropIndicator.parentNode) {
+            dropIndicator.before(draggedRow)
+        }
+        dropIndicator.remove()
+    })
+
+    function initDraggable(row) {
+        const header = row.querySelector('.ia-email-events-row-header')
+        if (!header) return
+
+        header.setAttribute('draggable', 'true')
+        // Buttons inside the header should remain clickable, not draggable
+        header.querySelectorAll('button').forEach(btn => btn.setAttribute('draggable', 'false'))
+
+        header.addEventListener('dblclick', (e) => {
+            if (e.target.closest('.ia-email-events-row-buttons')) return
+
+            const muteToggle = row.querySelector('[name="ia-email-events[][event-mute]"]')
+            if (!muteToggle) return
+
+            muteToggle.checked = !muteToggle.checked
+            handleMute(muteToggle)
+            row.dataset.dirty = 'true'
+            markUnsavedChanges()
+        })
+
+        header.addEventListener('dragstart', (e) => {
+            draggedRow = row
+            e.dataTransfer.effectAllowed = 'move'
+            e.dataTransfer.setData('text/plain', '')
+
+            const clone = header.cloneNode(true)
+            const cloneButtons = clone.querySelector('.ia-email-events-row-buttons')
+            if (cloneButtons) cloneButtons.remove()
+            Object.assign(clone.style, {
+                position:            'absolute',
+                top:                 '-9999px',
+                left:                '-9999px',
+                display:             'grid',
+                gridTemplateColumns: '100px 1fr',
+                alignItems:          'center',
+                gap:                 '0.5rem',
+                backgroundColor:     '#ddd',
+                padding:             '0.3rem 0.75rem',
+                borderRadius:        '0.25rem',
+                border:              '1px solid #8c8f94',
+                margin:              '0',
+                width:               'max-content',
+                maxWidth:            '420px'
+            })
+            document.body.appendChild(clone)
+            e.dataTransfer.setDragImage(clone, clone.offsetWidth / 2, clone.offsetHeight / 2)
+            setTimeout(() => clone.remove(), 0)
+
+            setTimeout(() => row.classList.add('ia-email-row-dragging'), 0)
+        })
+
+        header.addEventListener('dragend', () => {
+            row.classList.remove('ia-email-row-dragging')
+            dropIndicator.remove()
+            draggedRow = null
+        })
+    }
+
+    function capturePositions() {
+        document.querySelectorAll('.ia-email-events-row').forEach((row, index) => {
+            const eventIdInput = row.querySelector('.ia-email-event-id')
+            if (eventIdInput && eventIdInput.value) {
+                positionSnapshot.set(eventIdInput.value, index)
+            }
+        })
+    }
+
+    if (typeof tinyMCE !== 'undefined') {
+        tinyMCE.on('AddEditor', (e) => {
+            const textarea = document.getElementById(e.editor.id)
+            if (textarea) {
+                const row = textarea.closest('.ia-email-events-row')
+                if (row) {
+                    e.editor.on('Change', () => {
+                        row.dataset.dirty = 'true'
+                        markUnsavedChanges()
+                    })
+                }
+            }
+        })
+    }
+
+    form.addEventListener('submit', () => {
+        hasUnsavedChanges = false
+        document.querySelectorAll('.ia-email-events-row').forEach((row, index) => {
+            row.querySelectorAll('[name="ia-email-events[][event-unchanged]"]').forEach(m => m.remove())
+            const eventIdInput = row.querySelector('.ia-email-event-id')
+            const eventId = eventIdInput ? eventIdInput.value : ''
+            const isDirty = row.dataset.dirty === 'true'
+            const isNew = !eventId
+            const originalPos = positionSnapshot.get(eventId)
+            const positionChanged = originalPos !== undefined && originalPos !== index
+            if (!isDirty && !isNew && !positionChanged) {
+                const marker = document.createElement('input')
+                marker.type = 'hidden'
+                marker.name = 'ia-email-events[][event-unchanged]'
+                marker.value = 'yes'
+                row.appendChild(marker)
+            }
+        })
+    })
+
     document.querySelector('#copy-code').addEventListener('click', (e) => {
         e.preventDefault()
-        navigator.clipboard.writeText(document.querySelector('#the-preview').innerHTML)
+        navigator.clipboard.writeText(getEmailHtml())
         document.querySelector('#copy-code').classList.add('green-pulse')
     })
 
-    document.querySelector('#the-code').textContent = document.querySelector('#the-preview').innerHTML
+    document.querySelector('#the-code').textContent = getEmailHtml()
 
     document.querySelector('#toggle-code').addEventListener('click', (e) => {
         e.preventDefault()
